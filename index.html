@@ -36,6 +36,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
 
 <input id="s" type="number" placeholder="Số lượng">
+
 <input id="dv" placeholder="Đơn vị">
 <div id="goiYDV" class="suggestBox"></div>
 
@@ -80,15 +81,25 @@ let h = JSON.parse(localStorage.getItem("h")||"[]");
 let khs = JSON.parse(localStorage.getItem("khs")||"[]");
 let dvs = JSON.parse(localStorage.getItem("dvs")||"[]");
 
-list.onchange=()=>t.value=list.value;
+list.onchange=()=>{
+ t.value=list.value;
+ if(k[list.value]) dv.value=k[list.value].dv||"";
+};
+
 listKH.onchange=()=>kh.value=listKH.value;
 
 /* ===== GỢI Ý ===== */
 t.oninput=()=>{
  let q=t.value.toLowerCase();
  goiYHang.innerHTML=Object.keys(k).filter(i=>i.toLowerCase().includes(q))
- .map(i=>`<div onclick="t.value='${i}';goiYHang.innerHTML=''">${i}</div>`).join("");
+ .map(i=>`<div onclick="chonHang('${i}')">${i}</div>`).join("");
 };
+
+function chonHang(i){
+ t.value=i;
+ dv.value=k[i]?.dv||"";
+ goiYHang.innerHTML="";
+}
 
 kh.oninput=()=>{
  let q=kh.value.toLowerCase();
