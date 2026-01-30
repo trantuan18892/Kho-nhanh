@@ -50,19 +50,14 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <button class="x" onclick="xuat()">➖ XUẤT</button>
 <button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
 <button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
-<button class="ex" onclick="xuatCSV()">⬇️ XUẤT CSV</button>
 
 <h3>🔎 Kiểm tra nhanh tồn kho</h3>
-<input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
+<input id="checkHang" placeholder="Gõ tên hàng">
 <div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
 <tr>
-<th>Hàng</th>
-<th>Tồn</th>
-<th>Đơn vị</th>
-<th>Ảnh</th>
-<th>Sửa ảnh</th>
+<th>Hàng</th><th>Tồn</th><th>Đơn vị</th><th>Ảnh</th><th>Sửa ảnh</th>
 </tr>
 <tbody id="b"></tbody>
 </table>
@@ -81,58 +76,38 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 
 <h3>🕒 Lịch sử</h3>
 <table>
-<tr><th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>Đơn vị</th></tr>
+<tr>
+<th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>Đơn vị</th>
+</tr>
 <tbody id="ls"></tbody>
 </table>
 
 <script>
-let k = JSON.parse(localStorage.getItem("k")||"{}");
-let h = JSON.parse(localStorage.getItem("h")||"[]");
-let khs = JSON.parse(localStorage.getItem("khs")||"[]");
-let dvs = JSON.parse(localStorage.getItem("dvs")||"[]");
+let k=JSON.parse(localStorage.getItem("k")||"{}");
+let h=JSON.parse(localStorage.getItem("h")||"[]");
+let khs=JSON.parse(localStorage.getItem("khs")||"[]");
+let dvs=JSON.parse(localStorage.getItem("dvs")||"[]");
 let hangDangSuaAnh="";
 
-list.onchange=()=>{
- t.value=list.value;
- if(k[list.value]) dv.value=k[list.value].dv||"";
-};
-
+/* ===== GỢI Ý ===== */
+list.onchange=()=>{t.value=list.value;if(k[list.value])dv.value=k[list.value].dv||""};
 listKH.onchange=()=>kh.value=listKH.value;
 
-/* ===== GỢI Ý ===== */
-t.oninput=()=>{
- let q=t.value.toLowerCase();
- goiYHang.innerHTML=Object.keys(k).filter(i=>i.toLowerCase().includes(q))
- .map(i=>`<div onclick="chonHang('${i}')">${i}</div>`).join("");
-};
+t.oninput=()=>goiYHang.innerHTML=Object.keys(k)
+.filter(i=>i.toLowerCase().includes(t.value.toLowerCase()))
+.map(i=>`<div onclick="t.value='${i}';dv.value='${k[i].dv||""}';goiYHang.innerHTML=''">${i}</div>`).join("");
 
-function chonHang(i){
- t.value=i;
- dv.value=k[i]?.dv||"";
- goiYHang.innerHTML="";
-}
+kh.oninput=()=>goiYKH.innerHTML=khs
+.filter(i=>i.toLowerCase().includes(kh.value.toLowerCase()))
+.map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
 
-kh.oninput=()=>{
- let q=kh.value.toLowerCase();
- goiYKH.innerHTML=khs.filter(i=>i.toLowerCase().includes(q))
- .map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
-};
+dv.oninput=()=>goiYDV.innerHTML=dvs
+.filter(i=>i.toLowerCase().includes(dv.value.toLowerCase()))
+.map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
 
-dv.oninput=()=>{
- let q=dv.value.toLowerCase();
- goiYDV.innerHTML=dvs.filter(i=>i.toLowerCase().includes(q))
- .map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
-};
-
-checkHang.oninput=()=>{
- let q=checkHang.value.toLowerCase();
- ketQuaTon.innerHTML=Object.keys(k).filter(i=>i.toLowerCase().includes(q))
- .map(i=>`
-  <div>
-   📦 ${i}: ${k[i].sl} ${k[i].dv}
-   ${k[i].img?`<br><img src="${k[i].img}" class="thumb">`:""}
-  </div>`).join("");
-};
+checkHang.oninput=()=>ketQuaTon.innerHTML=Object.keys(k)
+.filter(i=>i.toLowerCase().includes(checkHang.value.toLowerCase()))
+.map(i=>`<div>${i}: ${k[i].sl} ${k[i].dv}${k[i].img?`<br><img src="${k[i].img}" class="thumb">`:""}</div>`).join("");
 
 function save(){
  localStorage.setItem("k",JSON.stringify(k));
@@ -143,58 +118,46 @@ function save(){
 }
 
 function nhap(){
- let ten=t.value.trim(), sl=+s.value, donvi=dv.value.trim(), khach=kh.value.trim();
- if(!ten||sl<=0) return alert("Nhập thiếu");
- if(!k[ten]) k[ten]={sl:0,dv:donvi,img:""};
- k[ten].sl+=sl; k[ten].dv=donvi;
- if(khach&&!khs.includes(khach)) khs.push(khach);
- if(donvi&&!dvs.includes(donvi)) dvs.push(donvi);
- h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl,dv:donvi});
+ if(!t.value||s.value<=0)return alert("Thiếu dữ liệu");
+ if(!k[t.value])k[t.value]={sl:0,dv:dv.value,img:""};
+ k[t.value].sl+=+s.value;k[t.value].dv=dv.value;
+ if(kh.value&&!khs.includes(kh.value))khs.push(kh.value);
+ if(dv.value&&!dvs.includes(dv.value))dvs.push(dv.value);
+ h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Nhập",sl:+s.value,dv:dv.value});
  t.value=s.value=dv.value=kh.value="";
  save();
 }
 
 function xuat(){
- let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
- if(!k[ten]||k[ten].sl<sl) return alert("Không đủ tồn");
- k[ten].sl-=sl;
- if(khach&&!khs.includes(khach)) khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl,dv:k[ten].dv});
+ if(!k[t.value]||k[t.value].sl<+s.value)return alert("Không đủ tồn");
+ k[t.value].sl-=+s.value;
+ h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Xuất",sl:+s.value,dv:k[t.value].dv});
  t.value=s.value=kh.value="";
  save();
 }
 
 function suaAnh(ten){
- hangDangSuaAnh=ten;
- imgInput.value="";
- imgInput.click();
+ hangDangSuaAnh=ten;imgInput.value="";imgInput.click();
 }
-
-/* ======= ĐOẠN ĐƯỢC SỬA DUY NHẤT (RESIZE ẢNH) ======= */
 imgInput.onchange=e=>{
- let file=e.target.files[0];
- if(!file||!hangDangSuaAnh) return;
-
- let reader=new FileReader();
- reader.onload=ev=>{
+ let f=e.target.files[0];if(!f)return;
+ let r=new FileReader();
+ r.onload=ev=>{
   let img=new Image();
   img.onload=()=>{
-   let canvas=document.createElement("canvas");
-   canvas.width=60;
-   canvas.height=60;
-   let ctx=canvas.getContext("2d");
-   ctx.drawImage(img,0,0,60,60);
-   k[hangDangSuaAnh].img=canvas.toDataURL("image/jpeg",0.7);
+   let c=document.createElement("canvas");
+   c.width=c.height=60;
+   c.getContext("2d").drawImage(img,0,0,60,60);
+   k[hangDangSuaAnh].img=c.toDataURL("image/jpeg",0.7);
    save();
   };
   img.src=ev.target.result;
  };
- reader.readAsDataURL(file);
+ r.readAsDataURL(f);
 };
-/* ================================================= */
 
-function xoa(){ if(t.value&&confirm("Xoá hàng?")){delete k[t.value];save();} }
-function xoaLichSu(){ if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();} }
+function xoa(){if(t.value&&confirm("Xoá hàng?")){delete k[t.value];save();}}
+function xoaLichSu(){if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}}
 
 function render(){
  list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
@@ -202,25 +165,51 @@ function render(){
  b.innerHTML="";
  for(let i in k){
   list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`
-  <tr class="${k[i].sl<5?'low':''}">
-   <td>${i}</td>
-   <td>${k[i].sl}</td>
-   <td>${k[i].dv}</td>
-   <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
-   <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td>
-  </tr>`;
+  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}">
+  <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
+  <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
+  <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td></tr>`;
  }
  khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
  let tong={};
- h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ h.forEach(i=>i.loai=="Xuất"&&i.kh&&(tong[i.kh]=(tong[i.kh]||0)+i.sl));
  tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
- ls.innerHTML=h.slice(0,100).map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
+ ls.innerHTML=h.map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
 }
 
-function xuatExcel(){ alert("Xuất Excel giữ nguyên như cũ"); }
-function xuatCSV(){ alert("Xuất CSV giữ nguyên như cũ"); }
-function saoLuu(){ alert("Sao lưu giữ nguyên như cũ"); }
+/* ===== XUẤT EXCEL GỘP ===== */
+async function xuatExcel(){
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,
+  XLSX.utils.aoa_to_sheet([["Hàng","Tồn","Đơn vị"],...Object.keys(k).map(i=>[i,k[i].sl,k[i].dv])]),
+  "TonKho");
+ XLSX.utils.book_append_sheet(wb,
+  XLSX.utils.aoa_to_sheet([["Thời gian","Hàng","KH","Loại","SL","Đơn vị"],...h.map(i=>[i.time,i.ten,i.kh,i.loai,i.sl,i.dv])]),
+  "LichSu");
+
+ if(window.showSaveFilePicker){
+  const hdl=await showSaveFilePicker({suggestedName:"kho_nhanh.xlsx"});
+  const w=await hdl.createWritable();
+  await w.write(XLSX.write(wb,{type:"array"}));
+  await w.close();
+  alert("✅ Xuất Excel thành công");
+ }else XLSX.writeFile(wb,"kho_nhanh.xlsx");
+}
+
+/* ===== SAO LƯU ===== */
+async function saoLuu(){
+ const data=JSON.stringify({k,h,khs,dvs},null,2);
+ if(window.showSaveFilePicker){
+  const hdl=await showSaveFilePicker({suggestedName:"kho_nhanh_backup.json"});
+  const w=await hdl.createWritable();
+  await w.write(data);await w.close();
+  alert("✅ Sao lưu thành công");
+ }else{
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([data]));
+  a.download="kho_nhanh_backup.json";a.click();
+ }
+}
 
 fileRestore.onchange=e=>{
  let r=new FileReader();
