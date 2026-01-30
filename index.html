@@ -33,7 +33,8 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 
 <button class="n" onclick="nhap()">➕ NHẬP</button>
 <button class="x" onclick="xuat()">➖ XUẤT</button>
-<button class="del" onclick="xoa()">🗑️ XÓA HÀNG</button>
+<button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
+<button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
 
 <h3>🔎 Kiểm tra nhanh tồn kho</h3>
 <input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
@@ -50,6 +51,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <tbody id="tongkh"></tbody>
 </table>
 
+<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
 <button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
 <input type="file" id="fileRestore" style="display:none" accept=".json">
 <button class="warn" onclick="fileRestore.click()">♻️ KHÔI PHỤC</button>
@@ -70,10 +72,8 @@ listKH.onchange=()=>kh.value=listKH.value;
 
 /* ===== TÌM CHỨA CHỮ ===== */
 checkHang.oninput=function(){
- let q=this.value.toLowerCase();
- let html="";
+ let q=this.value.toLowerCase(), html="";
  if(!q){ ketQuaTon.innerHTML=""; return; }
-
  for(let i in k){
   if(i.toLowerCase().includes(q)){
    html+=`<div onclick="chonHang('${i}')">📦 ${i} : ${k[i]}</div>`;
@@ -81,7 +81,6 @@ checkHang.oninput=function(){
  }
  ketQuaTon.innerHTML=html||"Không có";
 };
-
 function chonHang(ten){
  checkHang.value=ten;
  ketQuaTon.innerHTML=`📦 TỒN: ${k[ten]}`;
@@ -99,12 +98,10 @@ function save(){
 function nhap(){
  let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
  if(!ten||sl<=0) return alert("Nhập thiếu");
-
  k[ten]=(k[ten]||0)+sl;
- if(khach && !khs.includes(khach)) khs.push(khach);
-
+ if(khach&&!khs.includes(khach)) khs.push(khach);
  h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl});
- t.value=""; s.value=""; kh.value="";
+ t.value=s.value=kh.value="";
  save();
 }
 
@@ -113,21 +110,21 @@ function xuat(){
  let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
  if(!ten||sl<=0||!khach) return alert("Xuất cần KH");
  if(!k[ten]||k[ten]<sl) return alert("Không đủ tồn");
-
  k[ten]-=sl;
  if(!khs.includes(khach)) khs.push(khach);
-
  h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl});
- t.value=""; s.value=""; kh.value="";
+ t.value=s.value=kh.value="";
  save();
 }
 
 function xoa(){
  let ten=t.value.trim();
- if(ten && confirm("Xóa "+ten+" ?")){
-  delete k[ten];
-  save();
- }
+ if(ten&&confirm("Xoá "+ten+" ?")){delete k[ten];save();}
+}
+
+/* ===== XOÁ LỊCH SỬ ===== */
+function xoaLichSu(){
+ if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}
 }
 
 /* ===== RENDER ===== */
@@ -135,31 +132,35 @@ function render(){
  list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
  listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
  b.innerHTML="";
-
  for(let i in k){
   list.innerHTML+=`<option>${i}</option>`;
-  let low=k[i]<5?"class='low'":"";
-  b.innerHTML+=`<tr ${low}><td>${i}</td><td>${k[i]}</td></tr>`;
+  b.innerHTML+=`<tr class="${k[i]<5?'low':''}"><td>${i}</td><td>${k[i]}</td></tr>`;
  }
-
  khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
-
  let tong={};
  h.forEach(i=>{if(i.loai=="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
  tongkh.innerHTML="";
  for(let i in tong) tongkh.innerHTML+=`<tr><td>${i}</td><td>${tong[i]}</td></tr>`;
-
  ls.innerHTML="";
- h.slice(0,50).forEach(i=>{
+ h.slice(0,100).forEach(i=>{
   ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
  });
 }
 
+/* ===== XUẤT EXCEL (CSV – MỞ ĐƯỢC EXCEL) ===== */
+function xuatExcel(){
+ let csv="Hang,KH,Loai,SL,Time\n";
+ h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.time}\n`);
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([csv]));
+ a.download="kho-lich-su.csv";
+ a.click();
+}
+
 /* ===== BACKUP ===== */
 function saoLuu(){
- let blob=new Blob([JSON.stringify({k,h,khs})],{type:"application/json"});
  let a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
+ a.href=URL.createObjectURL(new Blob([JSON.stringify({k,h,khs})]));
  a.download="kho-backup.json";
  a.click();
 }
@@ -176,6 +177,5 @@ fileRestore.onchange=e=>{
 
 render();
 </script>
-
 </body>
 </html>
