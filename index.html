@@ -15,8 +15,20 @@ button{border:none;border-radius:8px;color:#fff}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
 td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 .low{background:#ffd6d6}
-.suggest div{padding:6px;background:#fff;border-bottom:1px solid #ddd}
-.suggest div:hover{background:#e0f0ff}
+
+.suggestBox{
+ background:#fff;
+ border:1px solid #ccc;
+ max-height:180px;
+ overflow:auto;
+}
+.suggestBox div{
+ padding:8px;
+ border-bottom:1px solid #eee;
+}
+.suggestBox div:hover{
+ background:#e0f0ff;
+}
 </style>
 </head>
 <body>
@@ -24,9 +36,13 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <h2>📦 KHO NHANH</h2>
 
 <input id="t" placeholder="Nhập tên hàng">
+<div id="goiYHang" class="suggestBox"></div>
+
 <select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
 
 <input id="kh" placeholder="Tên khách hàng">
+<div id="goiYKH" class="suggestBox"></div>
+
 <select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
 
 <input id="s" type="number" placeholder="Số lượng">
@@ -38,7 +54,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 
 <h3>🔎 Kiểm tra nhanh tồn kho</h3>
 <input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
-<div id="ketQuaTon" class="suggest"></div>
+<div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
 <tr><th>Hàng</th><th>Tồn</th></tr>
@@ -70,20 +86,52 @@ let khs = JSON.parse(localStorage.getItem("khs")||"[]");
 list.onchange=()=>t.value=list.value;
 listKH.onchange=()=>kh.value=listKH.value;
 
-/* ===== TÌM CHỨA CHỮ ===== */
-checkHang.oninput=function(){
+/* ===== GỢI Ý TÊN HÀNG ===== */
+t.oninput=function(){
  let q=this.value.toLowerCase(), html="";
- if(!q){ ketQuaTon.innerHTML=""; return; }
+ if(!q){goiYHang.innerHTML="";return;}
  for(let i in k){
   if(i.toLowerCase().includes(q)){
-   html+=`<div onclick="chonHang('${i}')">📦 ${i} : ${k[i]}</div>`;
+   html+=`<div onclick="chonHangNhap('${i}')">${i}</div>`;
+  }
+ }
+ goiYHang.innerHTML=html;
+};
+function chonHangNhap(v){
+ t.value=v;
+ goiYHang.innerHTML="";
+}
+
+/* ===== GỢI Ý KHÁCH HÀNG ===== */
+kh.oninput=function(){
+ let q=this.value.toLowerCase(), html="";
+ if(!q){goiYKH.innerHTML="";return;}
+ khs.forEach(i=>{
+  if(i.toLowerCase().includes(q)){
+   html+=`<div onclick="chonKH('${i}')">${i}</div>`;
+  }
+ });
+ goiYKH.innerHTML=html;
+};
+function chonKH(v){
+ kh.value=v;
+ goiYKH.innerHTML="";
+}
+
+/* ===== TÌM TỒN ===== */
+checkHang.oninput=function(){
+ let q=this.value.toLowerCase(), html="";
+ if(!q){ketQuaTon.innerHTML="";return;}
+ for(let i in k){
+  if(i.toLowerCase().includes(q)){
+   html+=`<div onclick="chonTon('${i}')">📦 ${i} : ${k[i]}</div>`;
   }
  }
  ketQuaTon.innerHTML=html||"Không có";
 };
-function chonHang(ten){
- checkHang.value=ten;
- ketQuaTon.innerHTML=`📦 TỒN: ${k[ten]}`;
+function chonTon(v){
+ checkHang.value=v;
+ ketQuaTon.innerHTML=`📦 TỒN: ${k[v]}`;
 }
 
 /* ===== SAVE ===== */
@@ -122,7 +170,6 @@ function xoa(){
  if(ten&&confirm("Xoá "+ten+" ?")){delete k[ten];save();}
 }
 
-/* ===== XOÁ LỊCH SỬ ===== */
 function xoaLichSu(){
  if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}
 }
@@ -147,7 +194,7 @@ function render(){
  });
 }
 
-/* ===== XUẤT EXCEL (CSV – MỞ ĐƯỢC EXCEL) ===== */
+/* ===== XUẤT EXCEL ===== */
 function xuatExcel(){
  let csv="Hang,KH,Loai,SL,Time\n";
  h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.time}\n`);
