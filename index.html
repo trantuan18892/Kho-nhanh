@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kho Nhanh</title>
+<style>
+body{font-family:Arial;background:#f2f2f2;padding:10px}
+h2,h3{text-align:center}
+input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
+button{border:none;border-radius:8px;color:#fff}
+.n{background:#28a745}.x{background:#dc3545}
+.ex{background:#17a2b8}.del{background:#6c757d}
+.warn{background:#ff9800}
+table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
+td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
+.low{background:#ffd6d6}
+.suggest div{padding:6px;background:#fff;border-bottom:1px solid #ddd}
+.suggest div:hover{background:#e0f0ff}
+</style>
+</head>
+<body>
+
+<h2>📦 KHO NHANH</h2>
+
+<input id="t" placeholder="Nhập tên hàng">
+<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
+
+<input id="kh" placeholder="Tên khách hàng">
+<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
+
+<input id="s" type="number" placeholder="Số lượng">
+
+<button class="n" onclick="nhap()">➕ NHẬP</button>
+<button class="x" onclick="xuat()">➖ XUẤT</button>
+<button class="del" onclick="xoa()">🗑️ XÓA HÀNG</button>
+
+<h3>🔎 Kiểm tra nhanh tồn kho</h3>
+<input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
+<div id="ketQuaTon" class="suggest"></div>
+
+<table>
+<tr><th>Hàng</th><th>Tồn</th></tr>
+<tbody id="b"></tbody>
+</table>
+
+<h3>📊 TỔNG XUẤT THEO KH</h3>
+<table>
+<tr><th>Khách hàng</th><th>Tổng SL</th></tr>
+<tbody id="tongkh"></tbody>
+</table>
+
+<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
+<input type="file" id="fileRestore" style="display:none" accept=".json">
+<button class="warn" onclick="fileRestore.click()">♻️ KHÔI PHỤC</button>
+
+<h3>🕒 Lịch sử</h3>
+<table>
+<tr><th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th></tr>
+<tbody id="ls"></tbody>
+</table>
+
+<script>
+let k = JSON.parse(localStorage.getItem("k")||"{}");
+let h = JSON.parse(localStorage.getItem("h")||"[]");
+let khs = JSON.parse(localStorage.getItem("khs")||"[]");
+
+list.onchange=()=>t.value=list.value;
+listKH.onchange=()=>kh.value=listKH.value;
+
+/* ===== TÌM CHỨA CHỮ ===== */
+checkHang.oninput=function(){
+ let q=this.value.toLowerCase();
+ let html="";
+ if(!q){ ketQuaTon.innerHTML=""; return; }
+
+ for(let i in k){
+  if(i.toLowerCase().includes(q)){
+   html+=`<div onclick="chonHang('${i}')">📦 ${i} : ${k[i]}</div>`;
+  }
+ }
+ ketQuaTon.innerHTML=html||"Không có";
+};
+
+function chonHang(ten){
+ checkHang.value=ten;
+ ketQuaTon.innerHTML=`📦 TỒN: ${k[ten]}`;
+}
+
+/* ===== SAVE ===== */
+function save(){
+ localStorage.setItem("k",JSON.stringify(k));
+ localStorage.setItem("h",JSON.stringify(h));
+ localStorage.setItem("khs",JSON.stringify(khs));
+ render();
+}
+
+/* ===== NHẬP ===== */
+function nhap(){
+ let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
+ if(!ten||sl<=0) return alert("Nhập thiếu");
+
+ k[ten]=(k[ten]||0)+sl;
+ if(khach && !khs.includes(khach)) khs.push(khach);
+
+ h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl});
+ t.value=""; s.value=""; kh.value="";
+ save();
+}
+
+/* ===== XUẤT ===== */
+function xuat(){
+ let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
+ if(!ten||sl<=0||!khach) return alert("Xuất cần KH");
+ if(!k[ten]||k[ten]<sl) return alert("Không đủ tồn");
+
+ k[ten]-=sl;
+ if(!khs.includes(khach)) khs.push(khach);
+
+ h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl});
+ t.value=""; s.value=""; kh.value="";
+ save();
+}
+
+function xoa(){
+ let ten=t.value.trim();
+ if(ten && confirm("Xóa "+ten+" ?")){
+  delete k[ten];
+  save();
+ }
+}
+
+/* ===== RENDER ===== */
+function render(){
+ list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
+ listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
+ b.innerHTML="";
+
+ for(let i in k){
+  list.innerHTML+=`<option>${i}</option>`;
+  let low=k[i]<5?"class='low'":"";
+  b.innerHTML+=`<tr ${low}><td>${i}</td><td>${k[i]}</td></tr>`;
+ }
+
+ khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
+
+ let tong={};
+ h.forEach(i=>{if(i.loai=="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ tongkh.innerHTML="";
+ for(let i in tong) tongkh.innerHTML+=`<tr><td>${i}</td><td>${tong[i]}</td></tr>`;
+
+ ls.innerHTML="";
+ h.slice(0,50).forEach(i=>{
+  ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
+ });
+}
+
+/* ===== BACKUP ===== */
+function saoLuu(){
+ let blob=new Blob([JSON.stringify({k,h,khs})],{type:"application/json"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="kho-backup.json";
+ a.click();
+}
+
+fileRestore.onchange=e=>{
+ let r=new FileReader();
+ r.onload=()=>{
+  let d=JSON.parse(r.result);
+  k=d.k||{}; h=d.h||[]; khs=d.khs||[];
+  save();
+ };
+ r.readAsText(e.target.files[0]);
+};
+
+render();
+</script>
+
+</body>
+</html>
