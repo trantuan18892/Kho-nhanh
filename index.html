@@ -4,13 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
- <title>Kho Nhanh</title>
+<title>Kho Nhanh</title>
+
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#28a745">
- <style>
+
+<style>
 body{font-family:Arial;background:#f2f2f2;padding:10px}
 h2,h3{text-align:center}
 input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
@@ -32,11 +34,10 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
  padding:8px;
  border-bottom:1px solid #eee;
 }
-.suggestBox div:hover{
- background:#e0f0ff;
-}
+.suggestBox div:hover{background:#e0f0ff}
 </style>
 </head>
+
 <body>
 
 <h2>📦 KHO NHANH</h2>
@@ -92,52 +93,39 @@ let khs = JSON.parse(localStorage.getItem("khs")||"[]");
 list.onchange=()=>t.value=list.value;
 listKH.onchange=()=>kh.value=listKH.value;
 
-/* ===== GỢI Ý TÊN HÀNG ===== */
+/* ===== GỢI Ý HÀNG ===== */
 t.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){goiYHang.innerHTML="";return;}
  for(let i in k){
-  if(i.toLowerCase().includes(q)){
-   html+=`<div onclick="chonHangNhap('${i}')">${i}</div>`;
-  }
+  if(i.toLowerCase().includes(q))
+   html+=`<div onclick="chonHang('${i}')">${i}</div>`;
  }
  goiYHang.innerHTML=html;
-};
-function chonHangNhap(v){
- t.value=v;
- goiYHang.innerHTML="";
 }
+function chonHang(v){t.value=v;goiYHang.innerHTML="";}
 
-/* ===== GỢI Ý KHÁCH HÀNG ===== */
+/* ===== GỢI Ý KH ===== */
 kh.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){goiYKH.innerHTML="";return;}
  khs.forEach(i=>{
-  if(i.toLowerCase().includes(q)){
+  if(i.toLowerCase().includes(q))
    html+=`<div onclick="chonKH('${i}')">${i}</div>`;
-  }
  });
  goiYKH.innerHTML=html;
-};
-function chonKH(v){
- kh.value=v;
- goiYKH.innerHTML="";
 }
+function chonKH(v){kh.value=v;goiYKH.innerHTML="";}
 
 /* ===== TÌM TỒN ===== */
 checkHang.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){ketQuaTon.innerHTML="";return;}
  for(let i in k){
-  if(i.toLowerCase().includes(q)){
-   html+=`<div onclick="chonTon('${i}')">📦 ${i} : ${k[i]}</div>`;
-  }
+  if(i.toLowerCase().includes(q))
+   html+=`<div>📦 ${i} : ${k[i]}</div>`;
  }
  ketQuaTon.innerHTML=html||"Không có";
-};
-function chonTon(v){
- checkHang.value=v;
- ketQuaTon.innerHTML=`📦 TỒN: ${k[v]}`;
 }
 
 /* ===== SAVE ===== */
@@ -199,55 +187,37 @@ function render(){
   ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
  });
 }
-/* ===== XUẤT EXCEL ĐẸP (.xlsx) ===== */
+
+/* ===== EXCEL NHIỀU SHEET ===== */
 function xuatExcel(){
- let wb = XLSX.utils.book_new();
+ let wb=XLSX.utils.book_new();
 
- // Sheet 1: TỒN KHO
- let ton = [["Hàng","Tồn"]];
- for(let i in k) ton.push([i, k[i]]);
- let wsTon = XLSX.utils.aoa_to_sheet(ton);
- XLSX.utils.book_append_sheet(wb, wsTon, "TON_KHO");
+ let ton=[["Hàng","Tồn"]];
+ for(let i in k) ton.push([i,k[i]]);
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ton),"TON_KHO");
 
- // Sheet 2: LỊCH SỬ
- let lichsu = [["Thời gian","Hàng","Khách hàng","Loại","Số lượng"]];
- h.forEach(i=>{
-  lichsu.push([i.time, i.ten, i.kh||"", i.loai, i.sl]);
- });
- let wsLS = XLSX.utils.aoa_to_sheet(lichsu);
- XLSX.utils.book_append_sheet(wb, wsLS, "LICH_SU");
+ let ls=[["Thời gian","Hàng","KH","Loại","SL"]];
+ h.forEach(i=>ls.push([i.time,i.ten,i.kh||"",i.loai,i.sl]));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ls),"LICH_SU");
 
- // Sheet 3: TỔNG KH
- let tong = {};
- h.forEach(i=>{
-  if(i.loai==="Xuất" && i.kh){
-   tong[i.kh] = (tong[i.kh]||0) + i.sl;
-  }
- });
- let tongkh = [["Khách hàng","Tổng xuất"]];
- for(let i in tong) tongkh.push([i, tong[i]]);
- let wsKH = XLSX.utils.aoa_to_sheet(tongkh);
- XLSX.utils.book_append_sheet(wb, wsKH, "TONG_KH");
+ let tong={},tk=[["Khách hàng","Tổng xuất"]];
+ h.forEach(i=>{if(i.loai=="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ for(let i in tong) tk.push([i,tong[i]]);
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tk),"TONG_KH");
 
- let d = new Date().toISOString().slice(0,10);
- XLSX.writeFile(wb, "kho-backup-"+d+".xlsx");
-}
-/* ===== AUTO BACKUP EXCEL MỖI NGÀY ===== */
-function autoBackupExcel(){
- let today = new Date().toISOString().slice(0,10);
- let last = localStorage.getItem("lastExcelBackup");
- if(last === today) return;
-
- setTimeout(()=>{
-  xuatExcel();
-  localStorage.setItem("lastExcelBackup", today);
- }, 1500);
+ XLSX.writeFile(wb,"kho-backup-"+new Date().toISOString().slice(0,10)+".xlsx");
 }
 
-/* chạy khi mở app */
-autoBackupExcel();
- /* ===== XUẤT EXCEL ===== */
-function xuatExcel(){
+/* ===== AUTO BACKUP ===== */
+(function(){
+ let d=new Date().toISOString().slice(0,10);
+ if(localStorage.getItem("lastExcelBackup")!==d){
+  setTimeout(()=>{xuatExcel();localStorage.setItem("lastExcelBackup",d)},1500);
+ }
+})();
+
+/* ===== CSV (GIỮ NGUYÊN) ===== */
+function xuatCSV(){
  let csv="Hang,KH,Loai,SL,Time\n";
  h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.time}\n`);
  let a=document.createElement("a");
@@ -256,7 +226,7 @@ function xuatExcel(){
  a.click();
 }
 
-/* ===== BACKUP ===== */
+/* ===== BACKUP JSON ===== */
 function saoLuu(){
  let a=document.createElement("a");
  a.href=URL.createObjectURL(new Blob([JSON.stringify({k,h,khs})]));
