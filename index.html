@@ -22,28 +22,24 @@ button{border:none;border-radius:8px;color:#fff}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
 td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 .low{background:#ffd6d6}
-.suggestBox{background:#fff;border:1px solid #ccc;max-height:180px;overflow:auto}
+.suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
 .suggestBox div{padding:8px;border-bottom:1px solid #eee}
 .suggestBox div:hover{background:#e0f0ff}
 </style>
 </head>
-
 <body>
+
 <h2>📦 KHO NHANH</h2>
 
-<input id="t" placeholder="Nhập tên hàng">
+<input id="t" placeholder="Tên hàng">
 <div id="goiYHang" class="suggestBox"></div>
 
-<input id="dv" placeholder="Đơn vị (kg, thùng, cái...)">
-
-<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
+<input id="s" type="number" placeholder="Số lượng">
+<input id="dv" placeholder="Đơn vị (thùng, cái, kg...)">
+<div id="goiYDV" class="suggestBox"></div>
 
 <input id="kh" placeholder="Tên khách hàng">
 <div id="goiYKH" class="suggestBox"></div>
-
-<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
-
-<input id="s" type="number" placeholder="Số lượng">
 
 <button class="n" onclick="nhap()">➕ NHẬP</button>
 <button class="x" onclick="xuat()">➖ XUẤT</button>
@@ -51,7 +47,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
 
 <h3>🔎 Kiểm tra nhanh tồn kho</h3>
-<input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
+<input id="checkHang" placeholder="Tìm chứa chữ">
 <div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
@@ -65,123 +61,97 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <tbody id="tongkh"></tbody>
 </table>
 
-<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
-<input type="file" id="fileRestore" style="display:none" accept=".json">
-<button class="warn" onclick="fileRestore.click()">♻️ KHÔI PHỤC</button>
 <button class="warn" onclick="xoaLichSu()">⚠️ XOÁ LỊCH SỬ</button>
+<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
+<input type="file" id="fileRestore" accept=".json">
 
 <h3>🕒 Lịch sử</h3>
 <table>
-<tr>
-<th>Thời gian</th>
-<th>Hàng</th>
-<th>KH</th>
-<th>Loại</th>
-<th>SL</th>
-<th>Đơn vị</th>
-</tr>
+<tr><th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>Đơn vị</th></tr>
 <tbody id="ls"></tbody>
 </table>
 
 <script>
-let rawK=JSON.parse(localStorage.getItem("k")||"{}");
-let k={};
-for(let i in rawK){
- if(typeof rawK[i]==="number") k[i]={sl:rawK[i],dv:""};
- else k[i]=rawK[i];
-}
-let h=JSON.parse(localStorage.getItem("h")||"[]");
-let khs=JSON.parse(localStorage.getItem("khs")||"[]");
+let k = JSON.parse(localStorage.getItem("k")||"{}");
+let h = JSON.parse(localStorage.getItem("h")||"[]");
+let khs = JSON.parse(localStorage.getItem("khs")||"[]");
+let dvs = JSON.parse(localStorage.getItem("dvs")||"[]");
 
-list.onchange=()=>t.value=list.value;
-listKH.onchange=()=>kh.value=listKH.value;
+/* GỢI Ý */
+t.oninput=()=>goiYHang.innerHTML=Object.keys(k).filter(i=>i.includes(t.value)).map(i=>`<div onclick="t.value='${i}';goiYHang.innerHTML=''">${i}</div>`).join("");
+kh.oninput=()=>goiYKH.innerHTML=khs.filter(i=>i.includes(kh.value)).map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
+dv.oninput=()=>goiYDV.innerHTML=dvs.filter(i=>i.includes(dv.value)).map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
 
-t.oninput=function(){
- let q=this.value.toLowerCase(),html="";
- if(!q){goiYHang.innerHTML="";return;}
- for(let i in k)
-  if(i.toLowerCase().includes(q))
-   html+=`<div onclick="chonHang('${i}')">📦 ${i} (${k[i].dv||""})</div>`;
- goiYHang.innerHTML=html;
-}
-function chonHang(v){t.value=v;dv.value=k[v].dv||"";goiYHang.innerHTML="";}
-
-kh.oninput=function(){
- let q=this.value.toLowerCase(),html="";
- if(!q){goiYKH.innerHTML="";return;}
- khs.forEach(i=>{
-  if(i.toLowerCase().includes(q))
-   html+=`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`;
- });
- goiYKH.innerHTML=html;
-}
-
-checkHang.oninput=function(){
- let q=this.value.toLowerCase(),html="";
- if(!q){ketQuaTon.innerHTML="";return;}
- for(let i in k)
-  if(i.toLowerCase().includes(q))
-   html+=`<div>📦 ${i}: ${k[i].sl} ${k[i].dv||""}</div>`;
- ketQuaTon.innerHTML=html||"Không có";
-}
+checkHang.oninput=()=>{
+ let q=checkHang.value;
+ ketQuaTon.innerHTML=Object.keys(k).filter(i=>i.includes(q))
+  .map(i=>`<div>📦 ${i}: ${k[i].sl} ${k[i].dv}</div>`).join("");
+};
 
 function save(){
  localStorage.setItem("k",JSON.stringify(k));
  localStorage.setItem("h",JSON.stringify(h));
  localStorage.setItem("khs",JSON.stringify(khs));
+ localStorage.setItem("dvs",JSON.stringify(dvs));
  render();
 }
 
 function nhap(){
- let ten=t.value.trim(),sl=+s.value,d= dv.value.trim(),khach=kh.value.trim();
- if(!ten||sl<=0) return alert("Nhập thiếu");
- if(!k[ten]) k[ten]={sl:0,dv:d};
- k[ten].sl+=sl;if(d)k[ten].dv=d;
- if(khach&&!khs.includes(khach))khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl,dv:d});
+ let ten=t.value.trim(), sl=+s.value, donvi=dv.value.trim(), khach=kh.value.trim();
+ if(!ten||sl<=0) return alert("Thiếu dữ liệu");
+ if(!k[ten]) k[ten]={sl:0,dv:donvi};
+ k[ten].sl+=sl; k[ten].dv=donvi;
+ if(khach&&!khs.includes(khach)) khs.push(khach);
+ if(donvi&&!dvs.includes(donvi)) dvs.push(donvi);
+ h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl,dv:donvi});
  t.value=s.value=dv.value=kh.value="";
  save();
 }
 
 function xuat(){
- let ten=t.value.trim(),sl=+s.value,khach=kh.value.trim();
- if(!ten||sl<=0||!khach) return alert("Xuất cần KH");
+ let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
  if(!k[ten]||k[ten].sl<sl) return alert("Không đủ tồn");
  k[ten].sl-=sl;
- if(!khs.includes(khach))khs.push(khach);
+ if(!khs.includes(khach)) khs.push(khach);
  h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl,dv:k[ten].dv});
- t.value=s.value=dv.value=kh.value="";
+ t.value=s.value=kh.value="";
  save();
 }
 
-function xoa(){let ten=t.value.trim();if(ten&&confirm("Xoá "+ten+" ?")){delete k[ten];save();}}
-function xoaLichSu(){if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}}
+function xoa(){ if(t.value&&confirm("Xoá?")){delete k[t.value];save();} }
+function xoaLichSu(){ if(confirm("Xoá lịch sử?")){h=[];save();} }
 
 function render(){
- list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
- listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
  b.innerHTML="";
- for(let i in k){
-  list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv||""}</td></tr>`;
- }
- khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
+ for(let i in k)
+  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td></tr>`;
  let tong={};
- h.forEach(i=>{if(i.loai==="Xuất"&&i.kh)tong[i.kh]=(tong[i.kh]||0)+i.sl});
- tongkh.innerHTML="";
- for(let i in tong) tongkh.innerHTML+=`<tr><td>${i}</td><td>${tong[i]}</td></tr>`;
- ls.innerHTML="";
- h.slice(0,100).forEach(i=>{
-  ls.innerHTML+=`<tr>
-   <td>${i.time}</td>
-   <td>${i.ten}</td>
-   <td>${i.kh}</td>
-   <td>${i.loai}</td>
-   <td>${i.sl}</td>
-   <td>${i.dv||""}</td>
-  </tr>`;
- });
+ h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
+ ls.innerHTML=h.slice(0,100).map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
 }
+
+function xuatExcel(){
+ let wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Hàng","SL","ĐV"],...Object.keys(k).map(i=>[i,k[i].sl,k[i].dv])]),"TON_KHO");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["TG","Hàng","KH","Loại","SL","ĐV"],...h.map(i=>[i.time,i.ten,i.kh,i.loai,i.sl,i.dv])]),"LICH_SU");
+ let tong={};h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["KH","Tổng SL"],...Object.keys(tong).map(i=>[i,tong[i]])]),"TONG_KH");
+ XLSX.writeFile(wb,"kho-nhanh.xlsx");
+}
+
+function saoLuu(){
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([JSON.stringify({k,h,khs,dvs})]));
+ a.download="kho-backup.json";a.click();
+ alert("✅ Sao lưu thành công");
+}
+
+fileRestore.onchange=e=>{
+ let r=new FileReader();
+ r.onload=()=>{let d=JSON.parse(r.result);k=d.k||{};h=d.h||[];khs=d.khs||[];dvs=d.dvs||[];save();}
+ r.readAsText(e.target.files[0]);
+};
 
 render();
 </script>
