@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kho Nhanh</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+ <title>Kho Nhanh</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -198,8 +199,54 @@ function render(){
   ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
  });
 }
+/* ===== XUẤT EXCEL ĐẸP (.xlsx) ===== */
+function xuatExcel(){
+ let wb = XLSX.utils.book_new();
 
-/* ===== XUẤT EXCEL ===== */
+ // Sheet 1: TỒN KHO
+ let ton = [["Hàng","Tồn"]];
+ for(let i in k) ton.push([i, k[i]]);
+ let wsTon = XLSX.utils.aoa_to_sheet(ton);
+ XLSX.utils.book_append_sheet(wb, wsTon, "TON_KHO");
+
+ // Sheet 2: LỊCH SỬ
+ let lichsu = [["Thời gian","Hàng","Khách hàng","Loại","Số lượng"]];
+ h.forEach(i=>{
+  lichsu.push([i.time, i.ten, i.kh||"", i.loai, i.sl]);
+ });
+ let wsLS = XLSX.utils.aoa_to_sheet(lichsu);
+ XLSX.utils.book_append_sheet(wb, wsLS, "LICH_SU");
+
+ // Sheet 3: TỔNG KH
+ let tong = {};
+ h.forEach(i=>{
+  if(i.loai==="Xuất" && i.kh){
+   tong[i.kh] = (tong[i.kh]||0) + i.sl;
+  }
+ });
+ let tongkh = [["Khách hàng","Tổng xuất"]];
+ for(let i in tong) tongkh.push([i, tong[i]]);
+ let wsKH = XLSX.utils.aoa_to_sheet(tongkh);
+ XLSX.utils.book_append_sheet(wb, wsKH, "TONG_KH");
+
+ let d = new Date().toISOString().slice(0,10);
+ XLSX.writeFile(wb, "kho-backup-"+d+".xlsx");
+}
+/* ===== AUTO BACKUP EXCEL MỖI NGÀY ===== */
+function autoBackupExcel(){
+ let today = new Date().toISOString().slice(0,10);
+ let last = localStorage.getItem("lastExcelBackup");
+ if(last === today) return;
+
+ setTimeout(()=>{
+  xuatExcel();
+  localStorage.setItem("lastExcelBackup", today);
+ }, 1500);
+}
+
+/* chạy khi mở app */
+autoBackupExcel();
+ /* ===== XUẤT EXCEL ===== */
 function xuatExcel(){
  let csv="Hang,KH,Loai,SL,Time\n";
  h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.time}\n`);
