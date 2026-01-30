@@ -55,7 +55,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
-<tr><th>Hàng</th><th>Tồn</th></tr>
+<tr><th>Hàng</th><th>Tồn</th><th>Đơn vị</th></tr>
 <tbody id="b"></tbody>
 </table>
 
@@ -72,41 +72,42 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 
 <h3>🕒 Lịch sử</h3>
 <table>
-<tr><th>Thời gian</th><th>Hàng</th><th>Đơn vị</th><th>KH</th><th>Loại</th><th>SL</th></tr>
+<tr>
+<th>Thời gian</th>
+<th>Hàng</th>
+<th>KH</th>
+<th>Loại</th>
+<th>SL</th>
+<th>Đơn vị</th>
+</tr>
 <tbody id="ls"></tbody>
 </table>
 
 <script>
-let rawK = JSON.parse(localStorage.getItem("k")||"{}");
-let k = {};
+let rawK=JSON.parse(localStorage.getItem("k")||"{}");
+let k={};
 for(let i in rawK){
  if(typeof rawK[i]==="number") k[i]={sl:rawK[i],dv:""};
  else k[i]=rawK[i];
 }
-let h = JSON.parse(localStorage.getItem("h")||"[]");
-let khs = JSON.parse(localStorage.getItem("khs")||"[]");
+let h=JSON.parse(localStorage.getItem("h")||"[]");
+let khs=JSON.parse(localStorage.getItem("khs")||"[]");
 
 list.onchange=()=>t.value=list.value;
 listKH.onchange=()=>kh.value=listKH.value;
 
-/* GỢI Ý HÀNG + ĐƠN VỊ */
 t.oninput=function(){
- let q=this.value.toLowerCase(), html="";
+ let q=this.value.toLowerCase(),html="";
  if(!q){goiYHang.innerHTML="";return;}
- for(let i in k){
-  if(i.toLowerCase().includes(q)){
-   html+=`<div onclick="chonHang('${i}')">📦 ${i} ${k[i].dv?`(${k[i].dv})`:""}</div>`;
-  }
- }
+ for(let i in k)
+  if(i.toLowerCase().includes(q))
+   html+=`<div onclick="chonHang('${i}')">📦 ${i} (${k[i].dv||""})</div>`;
  goiYHang.innerHTML=html;
 }
-function chonHang(v){
- t.value=v; dv.value=k[v].dv||""; goiYHang.innerHTML="";
-}
+function chonHang(v){t.value=v;dv.value=k[v].dv||"";goiYHang.innerHTML="";}
 
-/* GỢI Ý KH */
 kh.oninput=function(){
- let q=this.value.toLowerCase(), html="";
+ let q=this.value.toLowerCase(),html="";
  if(!q){goiYKH.innerHTML="";return;}
  khs.forEach(i=>{
   if(i.toLowerCase().includes(q))
@@ -115,13 +116,12 @@ kh.oninput=function(){
  goiYKH.innerHTML=html;
 }
 
-/* TÌM TỒN */
 checkHang.oninput=function(){
- let q=this.value.toLowerCase(), html="";
+ let q=this.value.toLowerCase(),html="";
  if(!q){ketQuaTon.innerHTML="";return;}
  for(let i in k)
   if(i.toLowerCase().includes(q))
-   html+=`<div>📦 ${i} : ${k[i].sl} ${k[i].dv||""}</div>`;
+   html+=`<div>📦 ${i}: ${k[i].sl} ${k[i].dv||""}</div>`;
  ketQuaTon.innerHTML=html||"Không có";
 }
 
@@ -133,23 +133,23 @@ function save(){
 }
 
 function nhap(){
- let ten=t.value.trim(), sl=+s.value, donvi=dv.value.trim(), khach=kh.value.trim();
+ let ten=t.value.trim(),sl=+s.value,d= dv.value.trim(),khach=kh.value.trim();
  if(!ten||sl<=0) return alert("Nhập thiếu");
- if(!k[ten]) k[ten]={sl:0,dv:donvi};
- k[ten].sl+=sl; if(donvi) k[ten].dv=donvi;
- if(khach&&!khs.includes(khach)) khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,dv:donvi,kh:khach,loai:"Nhập",sl});
+ if(!k[ten]) k[ten]={sl:0,dv:d};
+ k[ten].sl+=sl;if(d)k[ten].dv=d;
+ if(khach&&!khs.includes(khach))khs.push(khach);
+ h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl,dv:d});
  t.value=s.value=dv.value=kh.value="";
  save();
 }
 
 function xuat(){
- let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
+ let ten=t.value.trim(),sl=+s.value,khach=kh.value.trim();
  if(!ten||sl<=0||!khach) return alert("Xuất cần KH");
  if(!k[ten]||k[ten].sl<sl) return alert("Không đủ tồn");
  k[ten].sl-=sl;
- if(!khs.includes(khach)) khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,dv:k[ten].dv,kh:khach,loai:"Xuất",sl});
+ if(!khs.includes(khach))khs.push(khach);
+ h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl,dv:k[ten].dv});
  t.value=s.value=dv.value=kh.value="";
  save();
 }
@@ -163,51 +163,24 @@ function render(){
  b.innerHTML="";
  for(let i in k){
   list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl} ${k[i].dv||""}</td></tr>`;
+  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv||""}</td></tr>`;
  }
  khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
  let tong={};
- h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ h.forEach(i=>{if(i.loai==="Xuất"&&i.kh)tong[i.kh]=(tong[i.kh]||0)+i.sl});
  tongkh.innerHTML="";
  for(let i in tong) tongkh.innerHTML+=`<tr><td>${i}</td><td>${tong[i]}</td></tr>`;
  ls.innerHTML="";
  h.slice(0,100).forEach(i=>{
-  ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.dv||""}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
+  ls.innerHTML+=`<tr>
+   <td>${i.time}</td>
+   <td>${i.ten}</td>
+   <td>${i.kh}</td>
+   <td>${i.loai}</td>
+   <td>${i.sl}</td>
+   <td>${i.dv||""}</td>
+  </tr>`;
  });
-}
-
-function xuatExcel(){
- let wb=XLSX.utils.book_new();
- let ton=[["Hàng","Tồn","Đơn vị"]];
- for(let i in k) ton.push([i,k[i].sl,k[i].dv||""]);
- XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ton),"TON_KHO");
-
- let lsx=[["Thời gian","Hàng","Đơn vị","KH","Loại","SL"]];
- h.forEach(i=>lsx.push([i.time,i.ten,i.dv||"",i.kh||"",i.loai,i.sl]));
- XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(lsx),"LICH_SU");
-
- let tong={}; h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
- let tkh=[["Khách hàng","Tổng SL"]];
- for(let i in tong) tkh.push([i,tong[i]]);
- XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tkh),"TONG_KH");
-
- XLSX.writeFile(wb,"kho-nhanh.xlsx");
-}
-
-function saoLuu(){
- let blob=new Blob([JSON.stringify({k,h,khs},null,2)],{type:"application/json"});
- let name="kho-backup-"+new Date().toISOString().slice(0,10)+".json";
- let a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download=name;
- a.click();
- alert("✅ Sao lưu thành công!");
-}
-
-fileRestore.onchange=e=>{
- let r=new FileReader();
- r.onload=()=>{let d=JSON.parse(r.result);k=d.k||{};h=d.h||[];khs=d.khs||[];save();}
- r.readAsText(e.target.files[0]);
 }
 
 render();
