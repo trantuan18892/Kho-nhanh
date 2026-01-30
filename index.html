@@ -9,7 +9,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#28a745">
 
 <style>
@@ -23,32 +22,25 @@ button{border:none;border-radius:8px;color:#fff}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
 td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 .low{background:#ffd6d6}
-
-.suggestBox{
- background:#fff;
- border:1px solid #ccc;
- max-height:180px;
- overflow:auto;
-}
-.suggestBox div{
- padding:8px;
- border-bottom:1px solid #eee;
-}
-.suggestBox div:hover{
- background:#e0f0ff;
-}
+.suggestBox{background:#fff;border:1px solid #ccc;max-height:180px;overflow:auto}
+.suggestBox div{padding:8px;border-bottom:1px solid #eee}
+.suggestBox div:hover{background:#e0f0ff}
 </style>
 </head>
-<body>
 
+<body>
 <h2>📦 KHO NHANH</h2>
 
 <input id="t" placeholder="Nhập tên hàng">
 <div id="goiYHang" class="suggestBox"></div>
+
+<input id="dv" placeholder="Đơn vị (kg, thùng, cái...)">
+
 <select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
 
 <input id="kh" placeholder="Tên khách hàng">
 <div id="goiYKH" class="suggestBox"></div>
+
 <select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
 
 <input id="s" type="number" placeholder="Số lượng">
@@ -73,34 +65,46 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <tbody id="tongkh"></tbody>
 </table>
 
-<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
 <button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
 <input type="file" id="fileRestore" style="display:none" accept=".json">
 <button class="warn" onclick="fileRestore.click()">♻️ KHÔI PHỤC</button>
+<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ LỊCH SỬ</button>
 
 <h3>🕒 Lịch sử</h3>
 <table>
-<tr><th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th></tr>
+<tr><th>Thời gian</th><th>Hàng</th><th>Đơn vị</th><th>KH</th><th>Loại</th><th>SL</th></tr>
 <tbody id="ls"></tbody>
 </table>
 
 <script>
-let k = JSON.parse(localStorage.getItem("k")||"{}");
+let rawK = JSON.parse(localStorage.getItem("k")||"{}");
+let k = {};
+for(let i in rawK){
+ if(typeof rawK[i]==="number") k[i]={sl:rawK[i],dv:""};
+ else k[i]=rawK[i];
+}
 let h = JSON.parse(localStorage.getItem("h")||"[]");
 let khs = JSON.parse(localStorage.getItem("khs")||"[]");
 
 list.onchange=()=>t.value=list.value;
 listKH.onchange=()=>kh.value=listKH.value;
 
-/* ===== GỢI Ý ===== */
+/* GỢI Ý HÀNG + ĐƠN VỊ */
 t.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){goiYHang.innerHTML="";return;}
- for(let i in k) if(i.toLowerCase().includes(q))
-  html+=`<div onclick="t.value='${i}';goiYHang.innerHTML=''">${i}</div>`;
+ for(let i in k){
+  if(i.toLowerCase().includes(q)){
+   html+=`<div onclick="chonHang('${i}')">📦 ${i} ${k[i].dv?`(${k[i].dv})`:""}</div>`;
+  }
+ }
  goiYHang.innerHTML=html;
-};
+}
+function chonHang(v){
+ t.value=v; dv.value=k[v].dv||""; goiYHang.innerHTML="";
+}
 
+/* GỢI Ý KH */
 kh.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){goiYKH.innerHTML="";return;}
@@ -109,15 +113,17 @@ kh.oninput=function(){
    html+=`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`;
  });
  goiYKH.innerHTML=html;
-};
+}
 
+/* TÌM TỒN */
 checkHang.oninput=function(){
  let q=this.value.toLowerCase(), html="";
  if(!q){ketQuaTon.innerHTML="";return;}
- for(let i in k) if(i.toLowerCase().includes(q))
-  html+=`<div>📦 ${i} : ${k[i]}</div>`;
+ for(let i in k)
+  if(i.toLowerCase().includes(q))
+   html+=`<div>📦 ${i} : ${k[i].sl} ${k[i].dv||""}</div>`;
  ketQuaTon.innerHTML=html||"Không có";
-};
+}
 
 function save(){
  localStorage.setItem("k",JSON.stringify(k));
@@ -127,28 +133,29 @@ function save(){
 }
 
 function nhap(){
- let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
+ let ten=t.value.trim(), sl=+s.value, donvi=dv.value.trim(), khach=kh.value.trim();
  if(!ten||sl<=0) return alert("Nhập thiếu");
- k[ten]=(k[ten]||0)+sl;
+ if(!k[ten]) k[ten]={sl:0,dv:donvi};
+ k[ten].sl+=sl; if(donvi) k[ten].dv=donvi;
  if(khach&&!khs.includes(khach)) khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Nhập",sl});
- t.value=s.value=kh.value="";
+ h.unshift({time:new Date().toLocaleString(),ten,dv:donvi,kh:khach,loai:"Nhập",sl});
+ t.value=s.value=dv.value=kh.value="";
  save();
 }
 
 function xuat(){
  let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
  if(!ten||sl<=0||!khach) return alert("Xuất cần KH");
- if(!k[ten]||k[ten]<sl) return alert("Không đủ tồn");
- k[ten]-=sl;
+ if(!k[ten]||k[ten].sl<sl) return alert("Không đủ tồn");
+ k[ten].sl-=sl;
  if(!khs.includes(khach)) khs.push(khach);
- h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl});
- t.value=s.value=kh.value="";
+ h.unshift({time:new Date().toLocaleString(),ten,dv:k[ten].dv,kh:khach,loai:"Xuất",sl});
+ t.value=s.value=dv.value=kh.value="";
  save();
 }
 
-function xoa(){ let ten=t.value.trim(); if(ten&&confirm("Xoá "+ten+" ?")){delete k[ten];save();} }
-function xoaLichSu(){ if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();} }
+function xoa(){let ten=t.value.trim();if(ten&&confirm("Xoá "+ten+" ?")){delete k[ten];save();}}
+function xoaLichSu(){if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}}
 
 function render(){
  list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
@@ -156,83 +163,52 @@ function render(){
  b.innerHTML="";
  for(let i in k){
   list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`<tr class="${k[i]<5?'low':''}"><td>${i}</td><td>${k[i]}</td></tr>`;
+  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl} ${k[i].dv||""}</td></tr>`;
  }
  khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
  let tong={};
- h.forEach(i=>{if(i.loai=="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
  tongkh.innerHTML="";
  for(let i in tong) tongkh.innerHTML+=`<tr><td>${i}</td><td>${tong[i]}</td></tr>`;
  ls.innerHTML="";
  h.slice(0,100).forEach(i=>{
-  ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
+  ls.innerHTML+=`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.dv||""}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td></tr>`;
  });
 }
 
-/* ===== XUẤT EXCEL (.XLSX) NHIỀU SHEET ===== */
 function xuatExcel(){
- let wb = XLSX.utils.book_new();
+ let wb=XLSX.utils.book_new();
+ let ton=[["Hàng","Tồn","Đơn vị"]];
+ for(let i in k) ton.push([i,k[i].sl,k[i].dv||""]);
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ton),"TON_KHO");
 
- // Sheet 1: Tồn kho
- let ton = [["Hàng","Tồn"]];
- for(let i in k) ton.push([i, k[i]]);
- let wsTon = XLSX.utils.aoa_to_sheet(ton);
- XLSX.utils.book_append_sheet(wb, wsTon, "TON_KHO");
+ let lsx=[["Thời gian","Hàng","Đơn vị","KH","Loại","SL"]];
+ h.forEach(i=>lsx.push([i.time,i.ten,i.dv||"",i.kh||"",i.loai,i.sl]));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(lsx),"LICH_SU");
 
- // Sheet 2: Lịch sử
- let ls = [["Thời gian","Hàng","Khách hàng","Loại","Số lượng"]];
- h.forEach(i=>ls.push([i.time,i.ten,i.kh||"",i.loai,i.sl]));
- let wsLS = XLSX.utils.aoa_to_sheet(ls);
- XLSX.utils.book_append_sheet(wb, wsLS, "LICH_SU");
-
- // Sheet 3: Tổng theo KH
- let tong = {};
- h.forEach(i=>{
-  if(i.loai==="Xuất" && i.kh){
-   tong[i.kh]=(tong[i.kh]||0)+i.sl;
-  }
- });
- let tkh = [["Khách hàng","Tổng xuất"]];
+ let tong={}; h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
+ let tkh=[["Khách hàng","Tổng SL"]];
  for(let i in tong) tkh.push([i,tong[i]]);
- let wsKH = XLSX.utils.aoa_to_sheet(tkh);
- XLSX.utils.book_append_sheet(wb, wsKH, "TONG_KH");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tkh),"TONG_KH");
 
- let d = new Date().toISOString().slice(0,10);
- XLSX.writeFile(wb, "kho-nhanh-"+d+".xlsx");
+ XLSX.writeFile(wb,"kho-nhanh.xlsx");
 }
 
-/* ===== SAO LƯU JSON ===== */
 function saoLuu(){
- let data = JSON.stringify({k,h,khs}, null, 2);
- let blob = new Blob([data], {type:"application/json"});
- let fileName = "kho-backup-"+new Date().toISOString().slice(0,10)+".json";
-
- function thongBao(){
-  setTimeout(()=>alert("✅ Sao lưu thành công!\n"+fileName),300);
- }
-
- if(navigator.canShare){
-  let file = new File([blob], fileName, {type:"application/json"});
-  navigator.share({files:[file],title:"Backup Kho Nhanh"})
-   .then(thongBao).catch(()=>{});
- }else{
-  let a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=fileName;
-  a.click();
-  thongBao();
- }
+ let blob=new Blob([JSON.stringify({k,h,khs},null,2)],{type:"application/json"});
+ let name="kho-backup-"+new Date().toISOString().slice(0,10)+".json";
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download=name;
+ a.click();
+ alert("✅ Sao lưu thành công!");
 }
 
 fileRestore.onchange=e=>{
  let r=new FileReader();
- r.onload=()=>{
-  let d=JSON.parse(r.result);
-  k=d.k||{}; h=d.h||[]; khs=d.khs||[];
-  save();
- };
+ r.onload=()=>{let d=JSON.parse(r.result);k=d.k||{};h=d.h||[];khs=d.khs||[];save();}
  r.readAsText(e.target.files[0]);
-};
+}
 
 render();
 </script>
