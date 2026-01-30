@@ -169,17 +169,39 @@ function render(){
  });
 }
 
-/* ===== XUẤT EXCEL CSV (GIỮ NGUYÊN) ===== */
+/* ===== XUẤT EXCEL (.XLSX) NHIỀU SHEET ===== */
 function xuatExcel(){
- let csv="Hang,KH,Loai,SL,Time\n";
- h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.time}\n`);
- let a=document.createElement("a");
- a.href=URL.createObjectURL(new Blob([csv]));
- a.download="kho-lich-su.csv";
- a.click();
+ let wb = XLSX.utils.book_new();
+
+ // Sheet 1: Tồn kho
+ let ton = [["Hàng","Tồn"]];
+ for(let i in k) ton.push([i, k[i]]);
+ let wsTon = XLSX.utils.aoa_to_sheet(ton);
+ XLSX.utils.book_append_sheet(wb, wsTon, "TON_KHO");
+
+ // Sheet 2: Lịch sử
+ let ls = [["Thời gian","Hàng","Khách hàng","Loại","Số lượng"]];
+ h.forEach(i=>ls.push([i.time,i.ten,i.kh||"",i.loai,i.sl]));
+ let wsLS = XLSX.utils.aoa_to_sheet(ls);
+ XLSX.utils.book_append_sheet(wb, wsLS, "LICH_SU");
+
+ // Sheet 3: Tổng theo KH
+ let tong = {};
+ h.forEach(i=>{
+  if(i.loai==="Xuất" && i.kh){
+   tong[i.kh]=(tong[i.kh]||0)+i.sl;
+  }
+ });
+ let tkh = [["Khách hàng","Tổng xuất"]];
+ for(let i in tong) tkh.push([i,tong[i]]);
+ let wsKH = XLSX.utils.aoa_to_sheet(tkh);
+ XLSX.utils.book_append_sheet(wb, wsKH, "TONG_KH");
+
+ let d = new Date().toISOString().slice(0,10);
+ XLSX.writeFile(wb, "kho-nhanh-"+d+".xlsx");
 }
 
-/* ===== SAO LƯU JSON + THÔNG BÁO THÀNH CÔNG ===== */
+/* ===== SAO LƯU JSON ===== */
 function saoLuu(){
  let data = JSON.stringify({k,h,khs}, null, 2);
  let blob = new Blob([data], {type:"application/json"});
