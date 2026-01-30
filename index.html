@@ -31,23 +31,26 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 
 <h2>📦 KHO NHANH</h2>
 
-<input id="t" placeholder="Tên hàng">
+<input id="t" placeholder="Nhập tên hàng">
 <div id="goiYHang" class="suggestBox"></div>
+<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
 
 <input id="s" type="number" placeholder="Số lượng">
-<input id="dv" placeholder="Đơn vị (thùng, cái, kg...)">
+<input id="dv" placeholder="Đơn vị">
 <div id="goiYDV" class="suggestBox"></div>
 
 <input id="kh" placeholder="Tên khách hàng">
 <div id="goiYKH" class="suggestBox"></div>
+<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
 
 <button class="n" onclick="nhap()">➕ NHẬP</button>
 <button class="x" onclick="xuat()">➖ XUẤT</button>
 <button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
 <button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
+<button class="ex" onclick="xuatCSV()">⬇️ XUẤT CSV</button>
 
 <h3>🔎 Kiểm tra nhanh tồn kho</h3>
-<input id="checkHang" placeholder="Tìm chứa chữ">
+<input id="checkHang" placeholder="Gõ tên hàng (tìm chứa chữ)">
 <div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
@@ -61,7 +64,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 <tbody id="tongkh"></tbody>
 </table>
 
-<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ LỊCH SỬ</button>
+<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
 <button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
 <input type="file" id="fileRestore" accept=".json">
 
@@ -77,15 +80,32 @@ let h = JSON.parse(localStorage.getItem("h")||"[]");
 let khs = JSON.parse(localStorage.getItem("khs")||"[]");
 let dvs = JSON.parse(localStorage.getItem("dvs")||"[]");
 
-/* GỢI Ý */
-t.oninput=()=>goiYHang.innerHTML=Object.keys(k).filter(i=>i.includes(t.value)).map(i=>`<div onclick="t.value='${i}';goiYHang.innerHTML=''">${i}</div>`).join("");
-kh.oninput=()=>goiYKH.innerHTML=khs.filter(i=>i.includes(kh.value)).map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
-dv.oninput=()=>goiYDV.innerHTML=dvs.filter(i=>i.includes(dv.value)).map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
+list.onchange=()=>t.value=list.value;
+listKH.onchange=()=>kh.value=listKH.value;
+
+/* ===== GỢI Ý ===== */
+t.oninput=()=>{
+ let q=t.value.toLowerCase();
+ goiYHang.innerHTML=Object.keys(k).filter(i=>i.toLowerCase().includes(q))
+ .map(i=>`<div onclick="t.value='${i}';goiYHang.innerHTML=''">${i}</div>`).join("");
+};
+
+kh.oninput=()=>{
+ let q=kh.value.toLowerCase();
+ goiYKH.innerHTML=khs.filter(i=>i.toLowerCase().includes(q))
+ .map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
+};
+
+dv.oninput=()=>{
+ let q=dv.value.toLowerCase();
+ goiYDV.innerHTML=dvs.filter(i=>i.toLowerCase().includes(q))
+ .map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
+};
 
 checkHang.oninput=()=>{
- let q=checkHang.value;
- ketQuaTon.innerHTML=Object.keys(k).filter(i=>i.includes(q))
-  .map(i=>`<div>📦 ${i}: ${k[i].sl} ${k[i].dv}</div>`).join("");
+ let q=checkHang.value.toLowerCase();
+ ketQuaTon.innerHTML=Object.keys(k).filter(i=>i.toLowerCase().includes(q))
+ .map(i=>`<div>📦 ${i}: ${k[i].sl} ${k[i].dv}</div>`).join("");
 };
 
 function save(){
@@ -98,7 +118,7 @@ function save(){
 
 function nhap(){
  let ten=t.value.trim(), sl=+s.value, donvi=dv.value.trim(), khach=kh.value.trim();
- if(!ten||sl<=0) return alert("Thiếu dữ liệu");
+ if(!ten||sl<=0) return alert("Nhập thiếu");
  if(!k[ten]) k[ten]={sl:0,dv:donvi};
  k[ten].sl+=sl; k[ten].dv=donvi;
  if(khach&&!khs.includes(khach)) khs.push(khach);
@@ -112,19 +132,24 @@ function xuat(){
  let ten=t.value.trim(), sl=+s.value, khach=kh.value.trim();
  if(!k[ten]||k[ten].sl<sl) return alert("Không đủ tồn");
  k[ten].sl-=sl;
- if(!khs.includes(khach)) khs.push(khach);
+ if(khach&&!khs.includes(khach)) khs.push(khach);
  h.unshift({time:new Date().toLocaleString(),ten,kh:khach,loai:"Xuất",sl,dv:k[ten].dv});
  t.value=s.value=kh.value="";
  save();
 }
 
-function xoa(){ if(t.value&&confirm("Xoá?")){delete k[t.value];save();} }
-function xoaLichSu(){ if(confirm("Xoá lịch sử?")){h=[];save();} }
+function xoa(){ if(t.value&&confirm("Xoá hàng?")){delete k[t.value];save();} }
+function xoaLichSu(){ if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();} }
 
 function render(){
+ list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
+ listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
  b.innerHTML="";
- for(let i in k)
+ for(let i in k){
+  list.innerHTML+=`<option>${i}</option>`;
   b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}"><td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td></tr>`;
+ }
+ khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
  let tong={};
  h.forEach(i=>{if(i.loai==="Xuất"&&i.kh) tong[i.kh]=(tong[i.kh]||0)+i.sl});
  tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
@@ -140,10 +165,20 @@ function xuatExcel(){
  XLSX.writeFile(wb,"kho-nhanh.xlsx");
 }
 
+function xuatCSV(){
+ let csv="Hang,KH,Loai,SL,DonVi,Time\n";
+ h.forEach(i=>csv+=`${i.ten},${i.kh||""},${i.loai},${i.sl},${i.dv},${i.time}\n`);
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([csv]));
+ a.download="kho-lich-su.csv";
+ a.click();
+}
+
 function saoLuu(){
  let a=document.createElement("a");
  a.href=URL.createObjectURL(new Blob([JSON.stringify({k,h,khs,dvs})]));
- a.download="kho-backup.json";a.click();
+ a.download="kho-backup.json";
+ a.click();
  alert("✅ Sao lưu thành công");
 }
 
