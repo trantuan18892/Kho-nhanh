@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <title>📦 KHO NHANH</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#28a745">
 
 <style>
 body{font-family:-apple-system,Arial;background:#f2f2f2;padding:10px}
@@ -15,23 +21,29 @@ input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
 button{border:none;border-radius:8px;color:#fff}
 .n{background:#28a745}.x{background:#dc3545}
 .ex{background:#17a2b8}.del{background:#6c757d}
-.warn{background:#ff9800}.print{background:#343a40}
-.edit{background:#ffc107;color:#000}
+.warn{background:#ff9800}.edit{background:#ffc107;color:#000}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
 td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
 .low{background:#ffd6d6}
+.suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
+.suggestBox div{padding:8px;border-bottom:1px solid #eee}
+.suggestBox div:hover{background:#e0f0ff}
 .thumb{width:70px;height:70px;object-fit:cover;border-radius:6px}
 
 /* ===== PHIẾU ===== */
 #phieuBox{
  position:fixed;inset:0;background:rgba(0,0,0,.5);
- display:none;align-items:center;justify-content:center;z-index:999
+ display:none;align-items:center;justify-content:center;z-index:9999
 }
 #phieu{
- background:#fff;width:800px;max-width:95%;padding:15px
+ background:#fff;width:820px;max-width:96%;
+ padding:15px;border-radius:8px
 }
+#phieu h3{text-align:center;margin:8px 0}
 #phieu table{width:100%;border-collapse:collapse}
-#phieu td,#phieu th{border:1px solid #333;padding:6px}
+#phieu th,#phieu td{border:1px solid #333;padding:6px;text-align:center}
+#phieu .head{display:flex;gap:10px;align-items:center}
+#phieu img{height:60px}
 @media print{
  body *{visibility:hidden}
  #phieuBox,#phieuBox *{visibility:visible}
@@ -44,28 +56,60 @@ td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
 
 <h2>📦 KHO NHANH</h2>
 
-<input id="t" placeholder="Tên hàng">
+<input id="t" placeholder="Nhập tên hàng">
+<div id="goiYHang" class="suggestBox"></div>
+<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
+
 <input id="s" type="number" placeholder="Số lượng">
 <input id="dv" placeholder="Đơn vị">
-<input id="kh" placeholder="Khách hàng">
+<div id="goiYDV" class="suggestBox"></div>
+
+<input id="kh" placeholder="Tên khách hàng">
+<div id="goiYKH" class="suggestBox"></div>
+<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
 
 <button class="n" onclick="nhap()">➕ NHẬP</button>
 <button class="x" onclick="xuat()">➖ XUẤT</button>
+<button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
+<button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
 <button class="ex" onclick="moPhieu()">🧾 PHIẾU XUẤT</button>
-<button class="ex" onclick="xuatExcel()">⬇️ EXCEL</button>
+
+<h3>🔎 Kiểm tra nhanh tồn kho</h3>
+<input id="checkHang" placeholder="Gõ tên hàng">
+<div id="ketQuaTon" class="suggestBox"></div>
 
 <table>
-<tr><th>Hàng</th><th>Tồn</th><th>ĐV</th><th>Ảnh</th></tr>
+<tr>
+<th>Hàng</th><th>Tồn</th><th>Đơn vị</th><th>Ảnh</th><th>Sửa ảnh</th>
+</tr>
 <tbody id="b"></tbody>
 </table>
 
-<input type="file" id="imgInput" accept="image/*" hidden>
+<input type="file" id="imgInput" accept="image/*" style="display:none">
+
+<h3>📊 TỔNG XUẤT THEO KH</h3>
+<table>
+<tr><th>Khách hàng</th><th>Tổng SL</th></tr>
+<tbody id="tongkh"></tbody>
+</table>
+
+<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
+<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
+<input type="file" id="fileRestore" accept=".json">
+
+<h3>🕒 LỊCH SỬ</h3>
+<table>
+<tr>
+<th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>ĐV</th>
+</tr>
+<tbody id="ls"></tbody>
+</table>
 
 <!-- ===== PHIẾU XUẤT ===== -->
 <div id="phieuBox">
  <div id="phieu">
-  <div style="display:flex;gap:10px;align-items:center">
-   <img src="logo.png" style="height:60px">
+  <div class="head">
+   <img src="logo.png">
    <div>
     <b>TÊN CỬA HÀNG</b><br>
     📞 0123 456 789
@@ -73,23 +117,24 @@ td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
   </div>
 
   <h3>PHIẾU XUẤT KHO</h3>
-  Số phiếu: <b id="soPhieu"></b><br>
-  Ngày: <b id="ngayPhieu"></b><br>
-  Khách hàng: <b id="khPhieu"></b>
+  Số phiếu: <b id="px_so"></b><br>
+  Ngày: <b id="px_ngay"></b><br>
+  Khách hàng: <b id="px_kh"></b>
 
   <table>
    <thead>
-    <tr><th>STT</th><th>Hàng</th><th>SL</th><th>ĐV</th></tr>
+    <tr><th>STT</th><th>Hàng</th><th>SL</th><th>Đơn vị</th></tr>
    </thead>
-   <tbody id="dsPhieu"></tbody>
+   <tbody id="px_ds"></tbody>
    <tfoot>
-    <tr><th colspan="2">TỔNG</th><th id="tongSL">0</th><th></th></tr>
+    <tr><th colspan="2">TỔNG</th><th id="px_tong">0</th><th></th></tr>
    </tfoot>
   </table>
 
-  <button class="n" onclick="chotPhieu()">✅ CHỐT</button>
-  <button class="warn" onclick="huyPhieu()">↩ HUỶ</button>
-  <button class="ex" onclick="inPDF()">🖨 PDF</button>
+  <br>
+  <button class="n" onclick="chotPhieu()">✅ CHỐT PHIẾU</button>
+  <button class="warn" onclick="huyPhieu()">↩ HUỶ PHIẾU</button>
+  <button class="ex" onclick="inPDF()">🖨 IN / PDF</button>
   <button class="del" onclick="dongPhieu()">❌ ĐÓNG</button>
  </div>
 </div>
@@ -98,92 +143,119 @@ td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
 /* ===== DATA ===== */
 let k=JSON.parse(localStorage.getItem("k")||"{}");
 let h=JSON.parse(localStorage.getItem("h")||"[]");
-
+let khs=JSON.parse(localStorage.getItem("khs")||"[]");
+let dvs=JSON.parse(localStorage.getItem("dvs")||"[]");
+let hangDangSuaAnh="";
 let phieuDangLap=[];
-let phieuDaChot=[];
+let phieuDaChot=JSON.parse(localStorage.getItem("phieuDaChot")||"[]");
 
-/* ===== KHO ===== */
+/* ===== GỢI Ý ===== */
+list.onchange=()=>{t.value=list.value;if(k[list.value])dv.value=k[list.value].dv||""};
+listKH.onchange=()=>kh.value=listKH.value;
+
+t.oninput=()=>goiYHang.innerHTML=Object.keys(k)
+.filter(i=>i.toLowerCase().includes(t.value.toLowerCase()))
+.map(i=>`<div onclick="t.value='${i}';dv.value='${k[i].dv||""}';goiYHang.innerHTML=''">${i}</div>`).join("");
+
+kh.oninput=()=>goiYKH.innerHTML=khs
+.filter(i=>i.toLowerCase().includes(kh.value.toLowerCase()))
+.map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
+
+dv.oninput=()=>goiYDV.innerHTML=dvs
+.filter(i=>i.toLowerCase().includes(dv.value.toLowerCase()))
+.map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
+
+checkHang.oninput=()=>ketQuaTon.innerHTML=Object.keys(k)
+.filter(i=>i.toLowerCase().includes(checkHang.value.toLowerCase()))
+.map(i=>`<div>${i}: ${k[i].sl} ${k[i].dv}${k[i].img?`<br><img src="${k[i].img}" class="thumb">`:""}</div>`).join("");
+
+function save(){
+ localStorage.setItem("k",JSON.stringify(k));
+ localStorage.setItem("h",JSON.stringify(h));
+ localStorage.setItem("khs",JSON.stringify(khs));
+ localStorage.setItem("dvs",JSON.stringify(dvs));
+ render();
+}
+
 function nhap(){
- if(!t.value||s.value<=0)return;
+ if(!t.value||s.value<=0)return alert("Thiếu dữ liệu");
  if(!k[t.value])k[t.value]={sl:0,dv:dv.value,img:""};
  k[t.value].sl+=+s.value;k[t.value].dv=dv.value;
- h.unshift({time:new Date().toLocaleString("vi-VN"),ten:t.value,loai:"Nhập",sl:+s.value});
+ if(kh.value&&!khs.includes(kh.value))khs.push(kh.value);
+ if(dv.value&&!dvs.includes(dv.value))dvs.push(dv.value);
+ h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Nhập",sl:+s.value,dv:dv.value});
+ t.value=s.value=dv.value=kh.value="";
  save();
 }
+
+const xuatCu=xuat;
 function xuat(){
  if(!k[t.value]||k[t.value].sl<+s.value)return alert("Không đủ tồn");
- k[t.value].sl-=+s.value;
  phieuDangLap.push({ten:t.value,sl:+s.value,dv:k[t.value].dv});
- save();
+ k[t.value].sl-=+s.value;
+ h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Xuất",sl:+s.value,dv:k[t.value].dv});
+ t.value=s.value=kh.value="";
+ save();capNhatPhieu();
 }
 
 /* ===== PHIẾU ===== */
 function moPhieu(){
- if(!phieuDangLap.length)return alert("Chưa có hàng");
- soPhieu.innerText="PX-"+Date.now();
- ngayPhieu.innerText=new Date().toLocaleDateString("vi-VN");
- khPhieu.innerText=kh.value;
+ if(!kh.value)return alert("Chưa chọn KH");
+ phieuDangLap=[];
+ px_so.innerText="PX-"+Date.now();
+ px_ngay.innerText=new Date().toLocaleDateString("vi-VN");
+ px_kh.innerText=kh.value;
  capNhatPhieu();
  phieuBox.style.display="flex";
 }
 function dongPhieu(){phieuBox.style.display="none"}
-
 function capNhatPhieu(){
  let tong=0;
- dsPhieu.innerHTML=phieuDangLap.map((i,idx)=>{
+ px_ds.innerHTML=phieuDangLap.map((i,idx)=>{
   tong+=i.sl;
   return `<tr><td>${idx+1}</td><td>${i.ten}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`;
  }).join("");
- tongSL.innerText=tong;
+ px_tong.innerText=tong;
 }
-
 function chotPhieu(){
- phieuDaChot.push(JSON.parse(JSON.stringify(phieuDangLap)));
- phieuDangLap=[];
- alert("✅ Đã chốt phiếu");
- dongPhieu();
+ if(!phieuDangLap.length)return alert("Phiếu trống");
+ phieuDaChot.push({so:px_so.innerText,ngay:px_ngay.innerText,kh:px_kh.innerText,ds:[...phieuDangLap]});
+ localStorage.setItem("phieuDaChot",JSON.stringify(phieuDaChot));
+ alert("✅ Đã chốt");
 }
-
 function huyPhieu(){
- if(!confirm("Huỷ & hoàn kho?"))return;
- phieuDangLap.forEach(i=>k[i.ten].sl+=i.sl);
- phieuDangLap=[];
- save();
- dongPhieu();
+ if(!confirm("Huỷ phiếu?"))return;
+ let p=phieuDaChot.pop();
+ if(p){p.ds.forEach(i=>k[i.ten].sl+=i.sl);save();}
+ localStorage.setItem("phieuDaChot",JSON.stringify(phieuDaChot));
+ alert("↩ Đã hoàn kho");
 }
-
 function inPDF(){
  html2pdf().set({
-  filename:`phieu_xuat_${ngayPhieu.innerText.replaceAll('/','-')}.pdf`,
-  html2canvas:{scale:2},
-  jsPDF:{format:'a4'}
- }).from(phieu).save();
+  filename:`phieu_xuat_${px_ngay.innerText.replaceAll('/','-')}.pdf`,
+  margin:5,html2canvas:{scale:2},jsPDF:{format:'a4'}
+ }).from(document.getElementById("phieu")).save();
 }
 
-/* ===== EXCEL ===== */
-function xuatExcel(){
- const wb=XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb,
-  XLSX.utils.aoa_to_sheet([["Hàng","Tồn","ĐV"],...Object.keys(k).map(i=>[i,k[i].sl,k[i].dv])]),
-  "TonKho");
- XLSX.writeFile(wb,`kho_${new Date().toLocaleDateString("vi-VN").replaceAll('/','-')}.xlsx`);
-}
-
-/* ===== SAVE / RENDER ===== */
-function save(){
- localStorage.setItem("k",JSON.stringify(k));
- localStorage.setItem("h",JSON.stringify(h));
- render();
-}
 function render(){
- b.innerHTML=Object.keys(k).map(i=>`
- <tr>
-  <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
-  <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
- </tr>`).join("");
+ list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
+ listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
+ b.innerHTML="";
+ for(let i in k){
+  list.innerHTML+=`<option>${i}</option>`;
+  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}">
+   <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
+   <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
+   <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td>
+  </tr>`;
+ }
+ khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
+ let tong={};
+ h.forEach(i=>i.loai=="Xuất"&&i.kh&&(tong[i.kh]=(tong[i.kh]||0)+i.sl));
+ tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
+ ls.innerHTML=h.map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
 }
 render();
 </script>
-
 </body>
 </html>
