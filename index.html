@@ -3,28 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>📦 KHO NHANH</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<title>📦 KHO NHANH</title>
 
 <style>
 body{font-family:-apple-system,Arial;background:#f2f2f2;padding:10px}
 h2,h3{text-align:center}
-input,button,select{width:100%;font-size:20px;padding:10px;margin:6px 0}
+input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
 button{border:none;border-radius:8px;color:#fff}
 .n{background:#28a745}.x{background:#dc3545}
 .ex{background:#17a2b8}.del{background:#6c757d}
 .warn{background:#ff9800}.print{background:#343a40}
 .edit{background:#ffc107;color:#000}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
-td,th{border:1px solid #ccc;padding:6px;font-size:15px;text-align:center}
+td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
 .low{background:#ffd6d6}
+.suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
+.suggestBox div{padding:8px;border-bottom:1px solid #eee}
+.suggestBox div:hover{background:#e0f0ff}
 .thumb{width:70px;height:70px;object-fit:cover;border-radius:6px}
-
-@media print{
- body *{display:none}
- #printArea,#printArea *{display:block}
-}
+.phieuBox{background:#fff;padding:10px;border-radius:8px;margin-top:10px}
 </style>
 </head>
 
@@ -32,120 +32,247 @@ td,th{border:1px solid #ccc;padding:6px;font-size:15px;text-align:center}
 
 <h2>📦 KHO NHANH</h2>
 
-<input id="t" placeholder="Tên hàng">
+<!-- ===== NHẬP XUẤT LẺ (GIỮ NGUYÊN CODE GỐC) ===== -->
+<input id="t" placeholder="Nhập tên hàng">
+<div id="goiYHang" class="suggestBox"></div>
+<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
+
 <input id="s" type="number" placeholder="Số lượng">
 <input id="dv" placeholder="Đơn vị">
-<input id="kh" placeholder="Khách hàng">
+<div id="goiYDV" class="suggestBox"></div>
 
-<button class="n" onclick="themVaoPhieu()">➕ THÊM VÀO PHIẾU</button>
+<input id="kh" placeholder="Tên khách hàng">
+<div id="goiYKH" class="suggestBox"></div>
+<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
 
-<h3>🧾 PHIẾU XUẤT</h3>
+<button class="n" onclick="nhap()">➕ NHẬP</button>
+<button class="x" onclick="xuat()">➖ XUẤT</button>
+<button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
+<button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
+
+<h3>🔎 Kiểm tra nhanh tồn kho</h3>
+<input id="checkHang" placeholder="Gõ tên hàng">
+<div id="ketQuaTon" class="suggestBox"></div>
+
 <table>
-<tr><th>Hàng</th><th>SL</th><th>ĐV</th><th>X</th></tr>
-<tbody id="phieuBody"></tbody>
-</table>
-
-<p><b>TỔNG SL:</b> <span id="tongSL">0</span></p>
-
-<button class="x" onclick="chotPhieu()">✅ CHỐT PHIẾU</button>
-<button class="warn" onclick="huyPhieu()">❌ HUỶ PHIẾU</button>
-<button class="print" onclick="inPDF()">🖨️ IN / PDF</button>
-
-<hr>
-
-<h3>📦 TỒN KHO</h3>
-<table>
-<tr><th>Hàng</th><th>Tồn</th><th>ĐV</th><th>Ảnh</th></tr>
+<tr>
+<th>Hàng</th><th>Tồn</th><th>Đơn vị</th><th>Ảnh</th><th>Sửa ảnh</th>
+</tr>
 <tbody id="b"></tbody>
 </table>
 
-<input type="file" id="imgInput" accept="image/*" hidden>
+<input type="file" id="imgInput" accept="image/*" style="display:none">
 
-<!-- IN -->
-<div id="printArea">
- <div style="text-align:center">
-  <img src="logo.png" style="max-height:80px"><br>
-  <b>CỬA HÀNG ABC</b><br>
-  ĐT: 0909 000 000
- </div>
- <hr>
- <p>Mã phiếu: <b id="pMa"></b></p>
- <p>Ngày: <span id="pNgay"></span></p>
- <p>Khách hàng: <span id="pKH"></span></p>
+<h3>📊 TỔNG XUẤT THEO KH</h3>
+<table>
+<tr><th>Khách hàng</th><th>Tổng SL</th></tr>
+<tbody id="tongkh"></tbody>
+</table>
+
+<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
+<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
+<input type="file" id="fileRestore" accept=".json">
+
+<h3>🕒 LỊCH SỬ</h3>
+<table>
+<tr>
+<th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>ĐV</th>
+</tr>
+<tbody id="ls"></tbody>
+</table>
+
+<!-- ===== MODULE PHIẾU XUẤT (KHỞI TẠO) ===== -->
+<h3>📄 PHIẾU XUẤT KHO</h3>
+
+<div class="phieuBox">
+ <input id="px_kh" placeholder="Khách hàng">
+ <button class="n" onclick="themDongPhieu()">➕ Thêm hàng</button>
 
  <table>
-  <tr><th>Hàng</th><th>SL</th><th>ĐV</th></tr>
-  <tbody id="pBody"></tbody>
+  <tr><th>Hàng</th><th>SL</th><th>ĐV</th><th>X</th></tr>
+  <tbody id="px_body"></tbody>
  </table>
 
- <p><b>Tổng SL:</b> <span id="pTong"></span></p>
- <br>
- <p>Người giao _____________ &nbsp;&nbsp; Người nhận _____________</p>
+ <h3>Tổng SL: <span id="px_tong">0</span></h3>
+
+ <button class="print" onclick="chotPhieu()">🔒 CHỐT PHIẾU</button>
+ <button class="warn" onclick="huyPhieu()">♻️ HUỶ PHIẾU</button>
 </div>
 
 <script>
+/* ===== DATA GỐC ===== */
 let k=JSON.parse(localStorage.getItem("k")||"{}");
-let phieu=[];
-let soPhieu=+localStorage.getItem("soPhieu")||1;
+let h=JSON.parse(localStorage.getItem("h")||"[]");
+let khs=JSON.parse(localStorage.getItem("khs")||"[]");
+let dvs=JSON.parse(localStorage.getItem("dvs")||"[]");
 
-function themVaoPhieu(){
- if(!t.value||s.value<=0)return alert("Thiếu dữ liệu");
- if(!k[t.value]||k[t.value].sl<s.value)return alert("Không đủ tồn");
- phieu.push({ten:t.value,sl:+s.value,dv:k[t.value].dv});
+/* ===== PHIẾU XUẤT DATA ===== */
+let phieu={
+ id:null,
+ kh:"",
+ items:[],
+ trangThai:"tam"
+};
+
+/* ===== HÀM PHIẾU (PHẦN LOGIC HOÀN CHỈNH Ở PHẦN 2) ===== */
+function themDongPhieu(){
+ phieu.items.push({ten:"",sl:0,dv:""});
  renderPhieu();
 }
-
 function renderPhieu(){
- phieuBody.innerHTML="";
  let tong=0;
- phieu.forEach((i,idx)=>{
-  tong+=i.sl;
-  phieuBody.innerHTML+=`
-   <tr>
-    <td>${i.ten}</td><td>${i.sl}</td><td>${i.dv}</td>
-    <td><button onclick="phieu.splice(${idx},1);renderPhieu()">❌</button></td>
-   </tr>`;
- });
- tongSL.textContent=tong;
+ px_body.innerHTML=phieu.items.map((i,idx)=>{
+  tong+=Number(i.sl||0);
+  return `<tr>
+   <td><input value="${i.ten}" onchange="phieu.items[${idx}].ten=this.value"></td>
+   <td><input type="number" value="${i.sl}" onchange="phieu.items[${idx}].sl=this.value;renderPhieu()"></td>
+   <td><input value="${i.dv}" onchange="phieu.items[${idx}].dv=this.value"></td>
+   <td><button onclick="phieu.items.splice(${idx},1);renderPhieu()">❌</button></td>
+  </tr>`;
+ }).join("");
+ px_tong.textContent=tong;
+}
+<!-- ===== PHIẾU XUẤT ===== -->
+<style>
+#phieuBox{
+ position:fixed;inset:0;background:rgba(0,0,0,.5);
+ display:none;align-items:center;justify-content:center;z-index:999
+}
+#phieu{
+ background:#fff;width:800px;max-width:95%;padding:15px
+}
+#phieu h3{text-align:center;margin:5px 0}
+#phieu table{width:100%;border-collapse:collapse}
+#phieu td,#phieu th{border:1px solid #333;padding:6px;text-align:center}
+@media print{
+ body *{visibility:hidden}
+ #phieuBox,#phieuBox *{visibility:visible}
+ #phieuBox{position:static;background:none}
+}
+</style>
+
+<button class="ex" onclick="moPhieu()">🧾 PHIẾU XUẤT</button>
+
+<div id="phieuBox">
+ <div id="phieu">
+  <div style="display:flex;align-items:center;gap:10px">
+   <img id="logoCT" src="logo.png" style="height:60px">
+   <div>
+    <b id="tenCT">TÊN CỬA HÀNG</b><br>
+    📞 <span id="sdtCT">0123 456 789</span>
+   </div>
+  </div>
+
+  <h3>PHIẾU XUẤT KHO</h3>
+  <div>
+   Số phiếu: <b id="soPhieu"></b><br>
+   Ngày: <b id="ngayPhieu"></b><br>
+   Khách hàng: <b id="khPhieu"></b>
+  </div>
+
+  <table>
+   <thead>
+    <tr>
+     <th>STT</th><th>Hàng</th><th>SL</th><th>Đơn vị</th>
+    </tr>
+   </thead>
+   <tbody id="dsPhieu"></tbody>
+   <tfoot>
+    <tr>
+     <th colspan="2">TỔNG</th>
+     <th id="tongSL">0</th>
+     <th></th>
+    </tr>
+   </tfoot>
+  </table>
+
+  <br>
+  <button class="n" onclick="chotPhieu()">✅ CHỐT PHIẾU</button>
+  <button class="warn" onclick="huyPhieu()">↩ HUỶ PHIẾU</button>
+  <button class="ex" onclick="inPDF()">🖨 IN / PDF</button>
+  <button class="del" onclick="dongPhieu()">❌ ĐÓNG</button>
+ </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+let phieuDangLap=[];
+let phieuDaChot=[];
+
+function moPhieu(){
+ if(!kh.value) return alert("Chưa chọn khách hàng");
+ phieuDangLap=[];
+ capNhatPhieu();
+ soPhieu.innerText="PX-"+Date.now();
+ ngayPhieu.innerText=new Date().toLocaleDateString("vi-VN");
+ khPhieu.innerText=kh.value;
+ phieuBox.style.display="flex";
 }
 
+function dongPhieu(){phieuBox.style.display="none"}
+
+function themVaoPhieu(){
+ if(!k[t.value]||s.value<=0) return;
+ phieuDangLap.push({
+  ten:t.value,
+  sl:+s.value,
+  dv:k[t.value].dv
+ });
+ capNhatPhieu();
+}
+
+function capNhatPhieu(){
+ let tong=0;
+ dsPhieu.innerHTML=phieuDangLap.map((i,idx)=>{
+  tong+=i.sl;
+  return `<tr>
+   <td>${idx+1}</td>
+   <td>${i.ten}</td>
+   <td>${i.sl}</td>
+   <td>${i.dv}</td>
+  </tr>`;
+ }).join("");
+ tongSL.innerText=tong;
+}
+
+const oldXuat = xuat;
+xuat = function(){
+ oldXuat();
+ themVaoPhieu();
+};
+
 function chotPhieu(){
- if(!phieu.length)return alert("Chưa có hàng");
- phieu.forEach(i=>k[i.ten].sl-=i.sl);
- localStorage.setItem("k",JSON.stringify(k));
- localStorage.setItem("soPhieu",++soPhieu);
+ if(!phieuDangLap.length) return alert("Phiếu trống");
+ phieuDaChot.push({
+  so:soPhieu.innerText,
+  ngay:ngayPhieu.innerText,
+  kh:khPhieu.innerText,
+  ds:JSON.parse(JSON.stringify(phieuDangLap))
+ });
  alert("✅ Đã chốt phiếu");
- phieu=[];
- renderPhieu();renderKho();
 }
 
 function huyPhieu(){
- if(confirm("Huỷ phiếu hiện tại?")){
-  phieu=[];renderPhieu();
+ if(!confirm("Huỷ phiếu đã chốt?")) return;
+ let p=phieuDaChot.pop();
+ if(p){
+  p.ds.forEach(i=>{
+   k[i.ten].sl+=i.sl;
+  });
+  save();
  }
+ alert("↩ Đã huỷ");
 }
 
 function inPDF(){
- pMa.textContent="PX-"+String(soPhieu).padStart(4,"0");
- pNgay.textContent=new Date().toLocaleDateString("vi-VN");
- pKH.textContent=kh.value;
- pBody.innerHTML=phieu.map(i=>`<tr><td>${i.ten}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
- pTong.textContent=tongSL.textContent;
- window.print();
+ html2pdf().set({
+  filename:`phieu_xuat_${ngayPhieu.innerText.replaceAll('/','-')}.pdf`,
+  margin:5,
+  image:{type:'jpeg',quality:0.98},
+  html2canvas:{scale:2},
+  jsPDF:{unit:'mm',format:'a4'}
+ }).from(document.getElementById("phieu")).save();
 }
-
-function renderKho(){
- b.innerHTML="";
- for(let i in k){
-  b.innerHTML+=`
-  <tr class="${k[i].sl<5?'low':''}">
-   <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
-   <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
-  </tr>`;
- }
-}
-
-renderKho();
 </script>
-</body>
-</html>
+</script>
