@@ -2,251 +2,200 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<title>Kho Nhanh</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>📦 KHO NHANH</title>
 
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#28a745">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#f2f2f2;padding:10px}
+body{font-family:-apple-system,Arial;background:#f2f2f2;padding:10px}
 h2,h3{text-align:center}
-input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
+input,button{width:100%;font-size:20px;padding:12px;margin:6px 0}
 button{border:none;border-radius:8px;color:#fff}
 .n{background:#28a745}.x{background:#dc3545}
 .ex{background:#17a2b8}.del{background:#6c757d}
-.warn{background:#ff9800}
+.print{background:#343a40}
 .edit{background:#ffc107;color:#000}
 table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
-td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
+td,th{border:1px solid #ccc;padding:6px;font-size:16px;text-align:center}
 .low{background:#ffd6d6}
-.suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
-.suggestBox div{padding:8px;border-bottom:1px solid #eee}
-.suggestBox div:hover{background:#e0f0ff}
-.thumb{width:70px;height:70px;object-fit:cover;border-radius:6px}
+.thumb{width:70px;height:70px;object-fit:cover;border-radius:8px}
+
+/* ===== PRINT ===== */
+#printArea{display:none}
+@media print{
+ body *{display:none}
+ #printArea{
+  display:block;
+  position:fixed;
+  inset:0;
+  background:#fff;
+ }
+ #printArea *{display:block}
+}
 </style>
 </head>
 <body>
 
 <h2>📦 KHO NHANH</h2>
 
-<input id="t" placeholder="Nhập tên hàng">
-<div id="goiYHang" class="suggestBox"></div>
-<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
-
+<input id="t" placeholder="Tên hàng">
 <input id="s" type="number" placeholder="Số lượng">
-
 <input id="dv" placeholder="Đơn vị">
-<div id="goiYDV" class="suggestBox"></div>
-
-<input id="kh" placeholder="Tên khách hàng">
-<div id="goiYKH" class="suggestBox"></div>
-<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
+<input id="kh" placeholder="Khách hàng">
 
 <button class="n" onclick="nhap()">➕ NHẬP</button>
 <button class="x" onclick="xuat()">➖ XUẤT</button>
+<button class="print" onclick="inPDF()">🖨️ IN PHIẾU</button>
 <button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
-<button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
-
-<h3>🔎 Kiểm tra nhanh tồn kho</h3>
-<input id="checkHang" placeholder="Gõ tên hàng">
-<div id="ketQuaTon" class="suggestBox"></div>
+<button class="ex" onclick="xuatExcel()">⬇️ EXCEL</button>
 
 <table>
-<tr>
-<th>Hàng</th><th>Tồn</th><th>Đơn vị</th><th>Ảnh</th><th>Sửa ảnh</th>
-</tr>
+<tr><th>Hàng</th><th>Tồn</th><th>ĐV</th><th>Ảnh</th><th>Ảnh</th></tr>
 <tbody id="b"></tbody>
 </table>
 
-<input type="file" id="imgInput" accept="image/*" style="display:none">
+<input type="file" id="imgInput" accept="image/*" hidden>
 
-<h3>📊 TỔNG XUẤT THEO KH</h3>
+<h3>🕒 LỊCH SỬ</h3>
 <table>
-<tr><th>Khách hàng</th><th>Tổng SL</th></tr>
-<tbody id="tongkh"></tbody>
-</table>
-
-<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
-<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
-<input type="file" id="fileRestore" accept=".json">
-
-<h3>🕒 Lịch sử</h3>
-<table>
-<tr>
-<th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>Đơn vị</th>
-</tr>
+<tr><th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th></tr>
 <tbody id="ls"></tbody>
 </table>
+
+<!-- ===== PRINT AREA ===== -->
+<div id="printArea">
+ <h3>PHIẾU XUẤT KHO</h3>
+ <p>Thời gian: <span id="pTime"></span></p>
+ <p>Khách hàng: <span id="pKH"></span></p>
+ <table>
+  <tr><th>Hàng</th><th>SL</th><th>ĐV</th></tr>
+  <tbody id="pBody"></tbody>
+ </table>
+ <br>
+ <p>Người giao _____________  Người nhận _____________</p>
+</div>
 
 <script>
 let k=JSON.parse(localStorage.getItem("k")||"{}");
 let h=JSON.parse(localStorage.getItem("h")||"[]");
-let khs=JSON.parse(localStorage.getItem("khs")||"[]");
-let dvs=JSON.parse(localStorage.getItem("dvs")||"[]");
 let hangDangSuaAnh="";
 
-/* ===== GỢI Ý ===== */
-list.onchange=()=>{t.value=list.value;if(k[list.value])dv.value=k[list.value].dv||""};
-listKH.onchange=()=>kh.value=listKH.value;
-
-t.oninput=()=>goiYHang.innerHTML=Object.keys(k)
-.filter(i=>i.toLowerCase().includes(t.value.toLowerCase()))
-.map(i=>`<div onclick="t.value='${i}';dv.value='${k[i].dv||""}';goiYHang.innerHTML=''">${i}</div>`).join("");
-
-kh.oninput=()=>goiYKH.innerHTML=khs
-.filter(i=>i.toLowerCase().includes(kh.value.toLowerCase()))
-.map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
-
-dv.oninput=()=>goiYDV.innerHTML=dvs
-.filter(i=>i.toLowerCase().includes(dv.value.toLowerCase()))
-.map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
-
-checkHang.oninput=()=>ketQuaTon.innerHTML=Object.keys(k)
-.filter(i=>i.toLowerCase().includes(checkHang.value.toLowerCase()))
-.map(i=>`<div>${i}: ${k[i].sl} ${k[i].dv}${k[i].img?`<br><img src="${k[i].img}" class="thumb">`:""}</div>`).join("");
-
-function save(){
- localStorage.setItem("k",JSON.stringify(k));
- localStorage.setItem("h",JSON.stringify(h));
- localStorage.setItem("khs",JSON.stringify(khs));
- localStorage.setItem("dvs",JSON.stringify(dvs));
- render();
-}
-
+/* ===== NHẬP ===== */
 function nhap(){
  if(!t.value||s.value<=0)return alert("Thiếu dữ liệu");
  if(!k[t.value])k[t.value]={sl:0,dv:dv.value,img:""};
- k[t.value].sl+=+s.value;k[t.value].dv=dv.value;
- if(kh.value&&!khs.includes(kh.value))khs.push(kh.value);
- if(dv.value&&!dvs.includes(dv.value))dvs.push(dv.value);
- h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Nhập",sl:+s.value,dv:dv.value});
+ k[t.value].sl+=+s.value;
+ k[t.value].dv=dv.value;
+ h.unshift({time:new Date().toISOString(),ten:t.value,kh:kh.value,loai:"Nhập",sl:+s.value});
  t.value=s.value=dv.value=kh.value="";
  save();
 }
 
+/* ===== XUẤT ===== */
 function xuat(){
+ if(!kh.value)return alert("Chưa nhập khách hàng");
  if(!k[t.value]||k[t.value].sl<+s.value)return alert("Không đủ tồn");
  k[t.value].sl-=+s.value;
- h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Xuất",sl:+s.value,dv:k[t.value].dv});
- t.value=s.value=kh.value="";
+ h.unshift({time:new Date().toISOString(),ten:t.value,kh:kh.value,loai:"Xuất",sl:+s.value});
  save();
 }
 
-function suaAnh(ten){
- hangDangSuaAnh=ten;imgInput.value="";imgInput.click();
+/* ===== XOÁ ===== */
+function xoa(){
+ if(!t.value||!k[t.value])return alert("Không tìm thấy");
+ if(k[t.value].sl>0)return alert("Còn tồn, không thể xoá");
+ if(confirm("Xoá hàng này?")){delete k[t.value];save();}
 }
-imgInput.onchange = e => {
- let file = e.target.files[0];
- if (!file || !hangDangSuaAnh) return;
 
- // tự điều chỉnh chất lượng theo dung lượng
- let quality = 0.85;
- if (file.size > 1024 * 1024) quality = 0.6;
- else if (file.size > 300 * 1024) quality = 0.75;
-
- let reader = new FileReader();
- reader.onload = ev => {
-  let img = new Image();
-  img.onload = () => {
-
-   const dpr = window.devicePixelRatio || 1;
-   const size = 70;                  // size hiển thị
-   const realSize = size * dpr;      // size pixel thật
-
-   // 👉 tính crop vuông ở giữa
-   let sw = img.width;
-   let sh = img.height;
-   let s = Math.min(sw, sh);
-   let sx = (sw - s) / 2;
-   let sy = (sh - s) / 2;
-
-   let canvas = document.createElement("canvas");
-   canvas.width = canvas.height = realSize;
-
-   let ctx = canvas.getContext("2d");
-   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-   ctx.imageSmoothingEnabled = true;
-   ctx.imageSmoothingQuality = "high";
-
-   ctx.drawImage(
-     img,
-     sx, sy, s, s,     // cắt vuông giữa
-     0, 0, size, size  // vẽ đúng kích thước
-   );
-
-   k[hangDangSuaAnh].img = canvas.toDataURL("image/jpeg", quality);
+/* ===== ẢNH – RÕ IPHONE ===== */
+function suaAnh(ten){
+ hangDangSuaAnh=ten;
+ imgInput.value="";
+ imgInput.click();
+}
+imgInput.onchange=e=>{
+ let f=e.target.files[0]; if(!f)return;
+ let q=f.size>1024*1024?0.65:0.85;
+ let r=new FileReader();
+ r.onload=ev=>{
+  let img=new Image();
+  img.onload=()=>{
+   let dpr=window.devicePixelRatio||2;
+   let size=70, real=size*dpr;
+   let s=Math.min(img.width,img.height);
+   let c=document.createElement("canvas");
+   c.width=c.height=real;
+   let ctx=c.getContext("2d");
+   ctx.setTransform(1,0,0,1,0,0);
+   ctx.scale(dpr,dpr);
+   ctx.imageSmoothingQuality="high";
+   ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
+   k[hangDangSuaAnh].img=c.toDataURL("image/jpeg",q);
    save();
   };
-  img.src = ev.target.result;
+  img.src=ev.target.result;
  };
- reader.readAsDataURL(file);
+ r.readAsDataURL(f);
 };
 
-function xoa(){if(t.value&&confirm("Xoá hàng?")){delete k[t.value];save();}}
-function xoaLichSu(){if(confirm("Xoá toàn bộ lịch sử?")){h=[];save();}}
+/* ===== IN PDF (NHIỀU DÒNG) ===== */
+function inPDF(){
+ let ds=h.filter(i=>i.loai=="Xuất");
+ if(!ds.length)return alert("Chưa có xuất kho");
 
-function render(){
- list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
- listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
- b.innerHTML="";
- for(let i in k){
-  list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}">
-  <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
-  <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
-  <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td></tr>`;
- }
- khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
- let tong={};
- h.forEach(i=>i.loai=="Xuất"&&i.kh&&(tong[i.kh]=(tong[i.kh]||0)+i.sl));
- tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
- ls.innerHTML=h.map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
+ let lastTime=ds[0].time;
+ let same=ds.filter(i=>i.time===lastTime);
+
+ pTime.textContent=new Date(lastTime).toLocaleString("vi-VN");
+ pKH.textContent=same[0].kh;
+ pBody.innerHTML=same.map(i=>
+  `<tr><td>${i.ten}</td><td>${i.sl}</td><td>${k[i.ten].dv}</td></tr>`
+ ).join("");
+
+ window.print();
 }
 
-/* ===== XUẤT EXCEL GỘP ===== */
-async function xuatExcel(){
+/* ===== EXCEL ===== */
+function xuatExcel(){
  const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,
-  XLSX.utils.aoa_to_sheet([["Hàng","Tồn","Đơn vị"],...Object.keys(k).map(i=>[i,k[i].sl,k[i].dv])]),
-  "TonKho");
+  XLSX.utils.aoa_to_sheet([
+   ["Hàng","Tồn","ĐV"],
+   ...Object.keys(k).map(i=>[i,k[i].sl,k[i].dv])
+  ]),"TonKho");
  XLSX.utils.book_append_sheet(wb,
-  XLSX.utils.aoa_to_sheet([["Thời gian","Hàng","KH","Loại","SL","Đơn vị"],...h.map(i=>[i.time,i.ten,i.kh,i.loai,i.sl,i.dv])]),
-  "LichSu");
-
- if(window.showSaveFilePicker){
-  const hdl=await showSaveFilePicker({suggestedName:"kho_nhanh.xlsx"});
-  const w=await hdl.createWritable();
-  await w.write(XLSX.write(wb,{type:"array"}));
-  await w.close();
-  alert("✅ Xuất Excel thành công");
- }else XLSX.writeFile(wb,"kho_nhanh.xlsx");
+  XLSX.utils.aoa_to_sheet([
+   ["Thời gian","Hàng","KH","Loại","SL"],
+   ...h.map(i=>[
+    new Date(i.time).toLocaleString("vi-VN",{hour12:false}),
+    i.ten,i.kh,i.loai,i.sl
+   ])
+  ]),"LichSu");
+ XLSX.writeFile(wb,"kho_nhanh.xlsx");
 }
 
-/* ===== SAO LƯU ===== */
-async function saoLuu(){
- const data=JSON.stringify({k,h,khs,dvs},null,2);
- if(window.showSaveFilePicker){
-  const hdl=await showSaveFilePicker({suggestedName:"kho_nhanh_backup.json"});
-  const w=await hdl.createWritable();
-  await w.write(data);await w.close();
-  alert("✅ Sao lưu thành công");
- }else{
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([data]));
-  a.download="kho_nhanh_backup.json";a.click();
- }
+/* ===== SAVE / RENDER ===== */
+function save(){
+ localStorage.setItem("k",JSON.stringify(k));
+ localStorage.setItem("h",JSON.stringify(h));
+ render();
 }
-
-fileRestore.onchange=e=>{
- let r=new FileReader();
- r.onload=()=>{let d=JSON.parse(r.result);k=d.k||{};h=d.h||[];khs=d.khs||[];dvs=d.dvs||[];save();}
- r.readAsText(e.target.files[0]);
-};
-
+function render(){
+ b.innerHTML="";
+ Object.keys(k).forEach(i=>{
+  b.innerHTML+=`<tr class="${k[i].sl<=5?'low':''}">
+   <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
+   <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
+   <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td>
+  </tr>`;
+ });
+ ls.innerHTML=h.map(i=>`
+ <tr>
+  <td>${new Date(i.time).toLocaleString("vi-VN",{hour12:false})}</td>
+  <td>${i.ten}</td><td>${i.kh||""}</td><td>${i.loai}</td><td>${i.sl}</td>
+ </tr>`).join("");
+}
 render();
 </script>
 </body>
