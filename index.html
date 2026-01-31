@@ -26,7 +26,7 @@ td,th{border:1px solid #ccc;padding:8px;font-size:17px;text-align:center}
 .suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
 .suggestBox div{padding:8px;border-bottom:1px solid #eee}
 .suggestBox div:hover{background:#e0f0ff}
-.thumb{width:50px;height:50px;object-fit:cover;border-radius:6px}
+.thumb{width:70px;height:70px;object-fit:cover;border-radius:6px}
 </style>
 </head>
 <body>
@@ -139,21 +139,51 @@ function xuat(){
 function suaAnh(ten){
  hangDangSuaAnh=ten;imgInput.value="";imgInput.click();
 }
-imgInput.onchange=e=>{
- let f=e.target.files[0];if(!f)return;
- let r=new FileReader();
- r.onload=ev=>{
-  let img=new Image();
-  img.onload=()=>{
-   let c=document.createElement("canvas");
-   c.width=c.height=60;
-   c.getContext("2d").drawImage(img,0,0,60,60);
-   k[hangDangSuaAnh].img=c.toDataURL("image/jpeg",0.7);
+imgInput.onchange = e => {
+ let file = e.target.files[0];
+ if (!file || !hangDangSuaAnh) return;
+
+ // tự điều chỉnh chất lượng theo dung lượng
+ let quality = 0.85;
+ if (file.size > 1024 * 1024) quality = 0.6;
+ else if (file.size > 300 * 1024) quality = 0.75;
+
+ let reader = new FileReader();
+ reader.onload = ev => {
+  let img = new Image();
+  img.onload = () => {
+
+   const dpr = window.devicePixelRatio || 1;
+   const size = 60;                  // size hiển thị
+   const realSize = size * dpr;      // size pixel thật
+
+   // 👉 tính crop vuông ở giữa
+   let sw = img.width;
+   let sh = img.height;
+   let s = Math.min(sw, sh);
+   let sx = (sw - s) / 2;
+   let sy = (sh - s) / 2;
+
+   let canvas = document.createElement("canvas");
+   canvas.width = canvas.height = realSize;
+
+   let ctx = canvas.getContext("2d");
+   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+   ctx.imageSmoothingEnabled = true;
+   ctx.imageSmoothingQuality = "high";
+
+   ctx.drawImage(
+     img,
+     sx, sy, s, s,     // cắt vuông giữa
+     0, 0, size, size  // vẽ đúng kích thước
+   );
+
+   k[hangDangSuaAnh].img = canvas.toDataURL("image/jpeg", quality);
    save();
   };
-  img.src=ev.target.result;
+  img.src = ev.target.result;
  };
- r.readAsDataURL(f);
+ reader.readAsDataURL(file);
 };
 
 function xoa(){if(t.value&&confirm("Xoá hàng?")){delete k[t.value];save();}}
