@@ -2,147 +2,153 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Smart Inventory</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Kho V6</title>
+
 <style>
 :root{
---bg:#000;--card:#1c1c1e;--text:#fff;--sub:#9e9e9e;
---blue:#0a84ff;--green:#30d158;--orange:#ff9f0a;--red:#ff453a;
+ --bg:#f2f2f7;--card:#fff;--text:#111;--sub:#666;
+ --blue:#007aff;--red:#ff3b30;--radius:18px
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system;background:var(--bg);color:var(--text)}
-header{padding:16px;font-size:20px;font-weight:700;text-align:center}
-.tabbar{
-position:fixed;bottom:0;left:0;right:0;height:60px;
-display:flex;background:#111;border-top:1px solid #222}
-.tabbar button{
-flex:1;border:none;background:none;color:var(--sub);font-size:13px}
-.tabbar button.active{color:var(--blue)}
-main{padding:16px 16px 80px}
-.card{
-background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px}
-.row{display:flex;gap:12px;align-items:center}
-img{width:70px;height:70px;border-radius:14px;object-fit:cover;background:#333}
-.badge{padding:4px 10px;border-radius:10px;font-size:12px}
-.green{background:var(--green)}
-.orange{background:var(--orange)}
-.red{background:var(--red)}
-input,button{
-width:100%;padding:12px;border-radius:12px;border:none;margin-top:8px}
-input{background:#2c2c2e;color:#fff}
-button.primary{background:var(--blue);color:#fff}
-button.danger{background:var(--red);color:#fff}
+@media(prefers-color-scheme:dark){
+ :root{--bg:#000;--card:#1c1c1e;--text:#fff;--sub:#aaa}
+}
+*{font-family:-apple-system,BlinkMacSystemFont;box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text)}
 .hidden{display:none}
-.small{color:var(--sub);font-size:13px}
+.card{
+ background:var(--card);
+ margin:14px;padding:16px;
+ border-radius:var(--radius);
+ box-shadow:0 8px 20px rgba(0,0,0,.08)
+}
+button,input{
+ width:100%;padding:12px;margin-top:8px;
+ font-size:16px;border-radius:14px;border:1px solid #ccc
+}
+button{background:var(--blue);color:#fff;border:none}
+.header{display:flex;justify-content:space-between;align-items:center}
+.item{display:flex;gap:12px;margin-top:12px}
+.item img{
+ width:70px;height:70px;border-radius:14px;
+ object-fit:cover;background:#ccc
+}
+.badge{color:var(--red);font-weight:600}
+#fab{
+ position:fixed;right:20px;bottom:30px;
+ width:60px;height:60px;border-radius:50%;
+ background:var(--blue);color:#fff;
+ font-size:34px;border:none
+}
+#login{
+ position:fixed;inset:0;z-index:99;
+ background:rgba(0,0,0,.55);
+ backdrop-filter:blur(12px);
+ display:flex;align-items:center;justify-content:center
+}
 </style>
 </head>
 
 <body>
-<header>📦 Smart Inventory</header>
 
-<main>
-<!-- DASHBOARD -->
-<section id="dash">
-<div class="card">
-<b>Tổng quan</b>
-<div id="alert" class="small"></div>
+<div id="login">
+ <div class="card">
+  <h2>🔐 Nhập mật khẩu</h2>
+  <input type="password" id="pass" placeholder="Mật khẩu">
+  <button onclick="login()">Mở</button>
+ </div>
 </div>
-</section>
 
-<!-- INVENTORY -->
-<section id="inv" class="hidden">
-<div class="card">
-<input id="search" placeholder="🔍 Gõ tìm mặt hàng" oninput="render()">
-</div>
-<div id="list"></div>
+<div id="app" class="hidden">
+ <div class="card header">
+  <h2>📦 Quản lý kho</h2>
+  <span>V6</span>
+ </div>
 
-<div class="card">
-<b>➕ Thêm mặt hàng</b>
-<input id="name" placeholder="Tên">
-<input id="unit" placeholder="Đơn vị (cái/kg/thùng…)">
-<input id="min" type="number" placeholder="Tồn tối thiểu">
-<input id="img" type="file" accept="image/*">
-<button class="primary" onclick="add()">Thêm</button>
-</div>
-</section>
+ <div class="card">
+  📦 Mặt hàng: <b id="total">0</b><br>
+  ⚠️ Sắp hết: <b id="low">0</b>
+ </div>
 
-<!-- RECEIPT -->
-<section id="bill" class="hidden">
-<div class="card">
-<b>🧾 Phiếu xuất (gom)</b>
-<div id="receipt"></div>
-<button class="primary" onclick="print()">In / Lưu PDF</button>
-</div>
-</section>
-</main>
+ <div class="card">
+  <input placeholder="🔍 Tìm mặt hàng..." oninput="search(this.value)">
+ </div>
 
-<div class="tabbar">
-<button class="active" onclick="tab('dash',this)">Tổng quan</button>
-<button onclick="tab('inv',this)">Kho</button>
-<button onclick="tab('bill',this)">Phiếu</button>
+ <div id="list"></div>
 </div>
+
+<button id="fab" onclick="add()">+</button>
+<input type="file" id="img" accept="image/*" hidden>
 
 <script>
-let items=JSON.parse(localStorage.items||"[]");
-let out=[];
+const PASS="1234";
+let items=JSON.parse(localStorage.getItem("khoV6")||"[]");
 
-function tab(id,el){
-document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
-document.querySelectorAll(".tabbar button").forEach(b=>b.classList.remove("active"));
-el.classList.add("active");
-render();
+if(localStorage.getItem("logged")) start();
+
+function login(){
+ if(pass.value===PASS){
+  localStorage.setItem("logged",1);
+  start();
+ } else alert("Sai mật khẩu");
 }
-
-function save(){localStorage.items=JSON.stringify(items)}
-
+function start(){
+ login.style.display="none";
+ app.classList.remove("hidden");
+ render();
+}
+function save(){
+ localStorage.setItem("khoV6",JSON.stringify(items));
+ render();
+}
 function add(){
-let f=img.files[0]; if(!f)return alert("Chọn ảnh");
-let r=new FileReader();
-r.onload=()=>{
-items.push({
-name:name.value,unit:unit.value,min:+min.value||0,qty:0,img:r.result
-});
-save();name.value=unit.value=min.value="";render();
-};
-r.readAsDataURL(f);
+ let name=prompt("Tên mặt hàng");
+ if(!name)return;
+ let qty=parseInt(prompt("Số lượng")||0);
+ img.onchange=e=>{
+  let f=e.target.files[0];
+  if(!f)return;
+  let r=new FileReader();
+  r.onload=()=>{
+   items.push({id:Date.now(),name,qty,img:r.result});
+   save();
+  };
+  r.readAsDataURL(f);
+ };
+ img.click();
 }
-
-function move(i,delta){
-items[i].qty+=delta;
-if(delta<0) out.push(items[i].name+" : "+Math.abs(delta)+" "+items[i].unit);
-save();render();
+function del(id){
+ if(confirm("Xoá?")){
+  items=items.filter(i=>i.id!==id);
+  save();
+ }
 }
-
+function search(k){
+ document.querySelectorAll(".item").forEach(d=>{
+  d.style.display=d.innerText.toLowerCase().includes(k.toLowerCase())?"":"none";
+ });
+}
 function render(){
-let l=document.getElementById("list");l.innerHTML="";
-let low=0;
-items.forEach((it,i)=>{
-if(!it.name.toLowerCase().includes(search.value.toLowerCase()))return;
-let badge=it.qty<=0?"red":it.qty<=it.min?"orange":"green";
-if(it.qty<=it.min)low++;
-l.innerHTML+=`
-<div class="card">
-<div class="row">
-<img src="${it.img}">
-<div style="flex:1">
-<b>${it.name}</b>
-<div class="small">${it.qty} ${it.unit}</div>
-<span class="badge ${badge}">
-${badge=="green"?"Đủ":badge=="orange"?"Sắp hết":"Hết"}
-</span>
-</div>
-</div>
-<button onclick="move(${i},1)">+ Nhập</button>
-<button class="danger" onclick="move(${i},-1)">- Xuất</button>
-</div>`;
-});
-alert.innerText=low?`⚠️ ${low} mặt hàng sắp hết`:"Tất cả ổn định";
-receipt.innerHTML=out.map(o=>"<div>"+o+"</div>").join("");
+ list.innerHTML="";
+ total.innerText=items.length;
+ low.innerText=items.filter(i=>i.qty<=5).length;
+ items.forEach(i=>{
+  let d=document.createElement("div");
+  d.className="card item";
+  d.innerHTML=`
+   <img src="${i.img}">
+   <div style="flex:1">
+    <b>${i.name}</b><br>
+    SL: ${i.qty} ${i.qty<=5?'<span class="badge">⚠️ sắp hết</span>':''}
+    <div>
+     <button onclick="window.print()">🧾 In</button>
+     <button onclick="del(${i.id})" style="background:#eee;color:#000">🗑 Xoá</button>
+    </div>
+   </div>`;
+  list.appendChild(d);
+ });
 }
-
-function print(){window.print()}
-render();
 </script>
+
 </body>
 </html>
