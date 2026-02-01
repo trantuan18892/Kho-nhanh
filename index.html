@@ -2,259 +2,146 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-<title>📦 KHO NHANH</title>
-
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#28a745">
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Inventory</title>
 <style>
-body{font-family:-apple-system,Arial;background:#f2f2f2;padding:10px}
-h2,h3{text-align:center}
-input,button,select{width:100%;font-size:22px;padding:12px;margin:6px 0}
-button{border:none;border-radius:8px;color:#fff}
-.n{background:#28a745}.x{background:#dc3545}
-.ex{background:#17a2b8}.del{background:#6c757d}
-.warn{background:#ff9800}.edit{background:#ffc107;color:#000}
-table{width:100%;background:#fff;border-collapse:collapse;margin-top:10px}
-td,th{border:1px solid #ccc;padding:8px;font-size:16px;text-align:center}
-.low{background:#ffd6d6}
-.suggestBox{background:#fff;border:1px solid #ccc;max-height:160px;overflow:auto}
-.suggestBox div{padding:8px;border-bottom:1px solid #eee}
-.suggestBox div:hover{background:#e0f0ff}
-.thumb{width:70px;height:70px;object-fit:cover;border-radius:6px}
-
-/* ===== PHIẾU ===== */
-#phieuBox{
- position:fixed;inset:0;background:rgba(0,0,0,.5);
- display:none;align-items:center;justify-content:center;z-index:9999
+:root{
+--bg:#000;--card:#1c1c1e;--text:#fff;--sub:#9e9e9e;
+--blue:#0a84ff;--green:#30d158;--orange:#ff9f0a;--red:#ff453a;
 }
-#phieu{
- background:#fff;width:820px;max-width:96%;
- padding:15px;border-radius:8px
-}
-#phieu h3{text-align:center;margin:8px 0}
-#phieu table{width:100%;border-collapse:collapse}
-#phieu th,#phieu td{border:1px solid #333;padding:6px;text-align:center}
-#phieu .head{display:flex;gap:10px;align-items:center}
-#phieu img{height:60px}
-@media print{
- body *{visibility:hidden}
- #phieuBox,#phieuBox *{visibility:visible}
- #phieuBox{position:static;background:none}
-}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system;background:var(--bg);color:var(--text)}
+header{padding:16px;font-size:20px;font-weight:700;text-align:center}
+.tabbar{
+position:fixed;bottom:0;left:0;right:0;height:60px;
+display:flex;background:#111;border-top:1px solid #222}
+.tabbar button{
+flex:1;border:none;background:none;color:var(--sub);font-size:13px}
+.tabbar button.active{color:var(--blue)}
+main{padding:16px 16px 80px}
+.card{
+background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:12px;align-items:center}
+img{width:70px;height:70px;border-radius:14px;object-fit:cover;background:#333}
+.badge{padding:4px 10px;border-radius:10px;font-size:12px}
+.green{background:var(--green)}
+.orange{background:var(--orange)}
+.red{background:var(--red)}
+input,button{
+width:100%;padding:12px;border-radius:12px;border:none;margin-top:8px}
+input{background:#2c2c2e;color:#fff}
+button.primary{background:var(--blue);color:#fff}
+button.danger{background:var(--red);color:#fff}
+.hidden{display:none}
+.small{color:var(--sub);font-size:13px}
 </style>
 </head>
 
 <body>
+<header>📦 Smart Inventory</header>
 
-<h2>📦 KHO NHANH</h2>
+<main>
+<!-- DASHBOARD -->
+<section id="dash">
+<div class="card">
+<b>Tổng quan</b>
+<div id="alert" class="small"></div>
+</div>
+</section>
 
-<input id="t" placeholder="Nhập tên hàng">
-<div id="goiYHang" class="suggestBox"></div>
-<select id="list"><option value="">-- Chọn nhanh hàng --</option></select>
+<!-- INVENTORY -->
+<section id="inv" class="hidden">
+<div class="card">
+<input id="search" placeholder="🔍 Gõ tìm mặt hàng" oninput="render()">
+</div>
+<div id="list"></div>
 
-<input id="s" type="number" placeholder="Số lượng">
-<input id="dv" placeholder="Đơn vị">
-<div id="goiYDV" class="suggestBox"></div>
+<div class="card">
+<b>➕ Thêm mặt hàng</b>
+<input id="name" placeholder="Tên">
+<input id="unit" placeholder="Đơn vị (cái/kg/thùng…)">
+<input id="min" type="number" placeholder="Tồn tối thiểu">
+<input id="img" type="file" accept="image/*">
+<button class="primary" onclick="add()">Thêm</button>
+</div>
+</section>
 
-<input id="kh" placeholder="Tên khách hàng">
-<div id="goiYKH" class="suggestBox"></div>
-<select id="listKH"><option value="">-- Chọn nhanh KH --</option></select>
+<!-- RECEIPT -->
+<section id="bill" class="hidden">
+<div class="card">
+<b>🧾 Phiếu xuất (gom)</b>
+<div id="receipt"></div>
+<button class="primary" onclick="print()">In / Lưu PDF</button>
+</div>
+</section>
+</main>
 
-<button class="n" onclick="nhap()">➕ NHẬP</button>
-<button class="x" onclick="xuat()">➖ XUẤT</button>
-<button class="del" onclick="xoa()">🗑️ XOÁ HÀNG</button>
-<button class="ex" onclick="xuatExcel()">⬇️ XUẤT EXCEL</button>
-<button class="ex" onclick="moPhieu()">🧾 PHIẾU XUẤT</button>
-
-<h3>🔎 Kiểm tra nhanh tồn kho</h3>
-<input id="checkHang" placeholder="Gõ tên hàng">
-<div id="ketQuaTon" class="suggestBox"></div>
-
-<table>
-<tr>
-<th>Hàng</th><th>Tồn</th><th>Đơn vị</th><th>Ảnh</th><th>Sửa ảnh</th>
-</tr>
-<tbody id="b"></tbody>
-</table>
-
-<input type="file" id="imgInput" accept="image/*" style="display:none">
-
-<h3>📊 TỔNG XUẤT THEO KH</h3>
-<table>
-<tr><th>Khách hàng</th><th>Tổng SL</th></tr>
-<tbody id="tongkh"></tbody>
-</table>
-
-<button class="warn" onclick="xoaLichSu()">⚠️ XOÁ TOÀN BỘ LỊCH SỬ</button>
-<button class="ex" onclick="saoLuu()">💾 SAO LƯU</button>
-<input type="file" id="fileRestore" accept=".json">
-
-<h3>🕒 LỊCH SỬ</h3>
-<table>
-<tr>
-<th>Thời gian</th><th>Hàng</th><th>KH</th><th>Loại</th><th>SL</th><th>ĐV</th>
-</tr>
-<tbody id="ls"></tbody>
-</table>
-
-<!-- ===== PHIẾU XUẤT ===== -->
-<div id="phieuBox">
- <div id="phieu">
-  <div class="head">
-   <img src="logo.png">
-   <div>
-    <b>TÊN CỬA HÀNG</b><br>
-    📞 0123 456 789
-   </div>
-  </div>
-
-  <h3>PHIẾU XUẤT KHO</h3>
-  Số phiếu: <b id="px_so"></b><br>
-  Ngày: <b id="px_ngay"></b><br>
-  Khách hàng: <b id="px_kh"></b>
-
-  <table>
-   <thead>
-    <tr><th>STT</th><th>Hàng</th><th>SL</th><th>Đơn vị</th></tr>
-   </thead>
-   <tbody id="px_ds"></tbody>
-   <tfoot>
-    <tr><th colspan="2">TỔNG</th><th id="px_tong">0</th><th></th></tr>
-   </tfoot>
-  </table>
-
-  <br>
-  <button class="n" onclick="chotPhieu()">✅ CHỐT PHIẾU</button>
-  <button class="warn" onclick="huyPhieu()">↩ HUỶ PHIẾU</button>
-  <button class="ex" onclick="inPDF()">🖨 IN / PDF</button>
-  <button class="del" onclick="dongPhieu()">❌ ĐÓNG</button>
- </div>
+<div class="tabbar">
+<button class="active" onclick="tab('dash',this)">Tổng quan</button>
+<button onclick="tab('inv',this)">Kho</button>
+<button onclick="tab('bill',this)">Phiếu</button>
 </div>
 
 <script>
-/* ===== DATA ===== */
-let k=JSON.parse(localStorage.getItem("k")||"{}");
-let h=JSON.parse(localStorage.getItem("h")||"[]");
-let khs=JSON.parse(localStorage.getItem("khs")||"[]");
-let dvs=JSON.parse(localStorage.getItem("dvs")||"[]");
-let hangDangSuaAnh="";
-let phieuDangLap=[];
-let phieuDaChot=JSON.parse(localStorage.getItem("phieuDaChot")||"[]");
+let items=JSON.parse(localStorage.items||"[]");
+let out=[];
 
-/* ===== GỢI Ý ===== */
-list.onchange=()=>{t.value=list.value;if(k[list.value])dv.value=k[list.value].dv||""};
-listKH.onchange=()=>kh.value=listKH.value;
-
-t.oninput=()=>goiYHang.innerHTML=Object.keys(k)
-.filter(i=>i.toLowerCase().includes(t.value.toLowerCase()))
-.map(i=>`<div onclick="t.value='${i}';dv.value='${k[i].dv||""}';goiYHang.innerHTML=''">${i}</div>`).join("");
-
-kh.oninput=()=>goiYKH.innerHTML=khs
-.filter(i=>i.toLowerCase().includes(kh.value.toLowerCase()))
-.map(i=>`<div onclick="kh.value='${i}';goiYKH.innerHTML=''">${i}</div>`).join("");
-
-dv.oninput=()=>goiYDV.innerHTML=dvs
-.filter(i=>i.toLowerCase().includes(dv.value.toLowerCase()))
-.map(i=>`<div onclick="dv.value='${i}';goiYDV.innerHTML=''">${i}</div>`).join("");
-
-checkHang.oninput=()=>ketQuaTon.innerHTML=Object.keys(k)
-.filter(i=>i.toLowerCase().includes(checkHang.value.toLowerCase()))
-.map(i=>`<div>${i}: ${k[i].sl} ${k[i].dv}${k[i].img?`<br><img src="${k[i].img}" class="thumb">`:""}</div>`).join("");
-
-function save(){
- localStorage.setItem("k",JSON.stringify(k));
- localStorage.setItem("h",JSON.stringify(h));
- localStorage.setItem("khs",JSON.stringify(khs));
- localStorage.setItem("dvs",JSON.stringify(dvs));
- render();
+function tab(id,el){
+document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+document.querySelectorAll(".tabbar button").forEach(b=>b.classList.remove("active"));
+el.classList.add("active");
+render();
 }
 
-function nhap(){
- if(!t.value||s.value<=0)return alert("Thiếu dữ liệu");
- if(!k[t.value])k[t.value]={sl:0,dv:dv.value,img:""};
- k[t.value].sl+=+s.value;k[t.value].dv=dv.value;
- if(kh.value&&!khs.includes(kh.value))khs.push(kh.value);
- if(dv.value&&!dvs.includes(dv.value))dvs.push(dv.value);
- h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Nhập",sl:+s.value,dv:dv.value});
- t.value=s.value=dv.value=kh.value="";
- save();
+function save(){localStorage.items=JSON.stringify(items)}
+
+function add(){
+let f=img.files[0]; if(!f)return alert("Chọn ảnh");
+let r=new FileReader();
+r.onload=()=>{
+items.push({
+name:name.value,unit:unit.value,min:+min.value||0,qty:0,img:r.result
+});
+save();name.value=unit.value=min.value="";render();
+};
+r.readAsDataURL(f);
 }
 
-const xuatCu=xuat;
-function xuat(){
- if(!k[t.value]||k[t.value].sl<+s.value)return alert("Không đủ tồn");
- phieuDangLap.push({ten:t.value,sl:+s.value,dv:k[t.value].dv});
- k[t.value].sl-=+s.value;
- h.unshift({time:new Date().toLocaleString(),ten:t.value,kh:kh.value,loai:"Xuất",sl:+s.value,dv:k[t.value].dv});
- t.value=s.value=kh.value="";
- save();capNhatPhieu();
-}
-
-/* ===== PHIẾU ===== */
-function moPhieu(){
- if(!kh.value)return alert("Chưa chọn KH");
- phieuDangLap=[];
- px_so.innerText="PX-"+Date.now();
- px_ngay.innerText=new Date().toLocaleDateString("vi-VN");
- px_kh.innerText=kh.value;
- capNhatPhieu();
- phieuBox.style.display="flex";
-}
-function dongPhieu(){phieuBox.style.display="none"}
-function capNhatPhieu(){
- let tong=0;
- px_ds.innerHTML=phieuDangLap.map((i,idx)=>{
-  tong+=i.sl;
-  return `<tr><td>${idx+1}</td><td>${i.ten}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`;
- }).join("");
- px_tong.innerText=tong;
-}
-function chotPhieu(){
- if(!phieuDangLap.length)return alert("Phiếu trống");
- phieuDaChot.push({so:px_so.innerText,ngay:px_ngay.innerText,kh:px_kh.innerText,ds:[...phieuDangLap]});
- localStorage.setItem("phieuDaChot",JSON.stringify(phieuDaChot));
- alert("✅ Đã chốt");
-}
-function huyPhieu(){
- if(!confirm("Huỷ phiếu?"))return;
- let p=phieuDaChot.pop();
- if(p){p.ds.forEach(i=>k[i.ten].sl+=i.sl);save();}
- localStorage.setItem("phieuDaChot",JSON.stringify(phieuDaChot));
- alert("↩ Đã hoàn kho");
-}
-function inPDF(){
- html2pdf().set({
-  filename:`phieu_xuat_${px_ngay.innerText.replaceAll('/','-')}.pdf`,
-  margin:5,html2canvas:{scale:2},jsPDF:{format:'a4'}
- }).from(document.getElementById("phieu")).save();
+function move(i,delta){
+items[i].qty+=delta;
+if(delta<0) out.push(items[i].name+" : "+Math.abs(delta)+" "+items[i].unit);
+save();render();
 }
 
 function render(){
- list.innerHTML='<option value="">-- Chọn nhanh hàng --</option>';
- listKH.innerHTML='<option value="">-- Chọn nhanh KH --</option>';
- b.innerHTML="";
- for(let i in k){
-  list.innerHTML+=`<option>${i}</option>`;
-  b.innerHTML+=`<tr class="${k[i].sl<5?'low':''}">
-   <td>${i}</td><td>${k[i].sl}</td><td>${k[i].dv}</td>
-   <td>${k[i].img?`<img src="${k[i].img}" class="thumb">`:""}</td>
-   <td><button class="edit" onclick="suaAnh('${i}')">🖼</button></td>
-  </tr>`;
- }
- khs.forEach(i=>listKH.innerHTML+=`<option>${i}</option>`);
- let tong={};
- h.forEach(i=>i.loai=="Xuất"&&i.kh&&(tong[i.kh]=(tong[i.kh]||0)+i.sl));
- tongkh.innerHTML=Object.keys(tong).map(i=>`<tr><td>${i}</td><td>${tong[i]}</td></tr>`).join("");
- ls.innerHTML=h.map(i=>`<tr><td>${i.time}</td><td>${i.ten}</td><td>${i.kh}</td><td>${i.loai}</td><td>${i.sl}</td><td>${i.dv}</td></tr>`).join("");
+let l=document.getElementById("list");l.innerHTML="";
+let low=0;
+items.forEach((it,i)=>{
+if(!it.name.toLowerCase().includes(search.value.toLowerCase()))return;
+let badge=it.qty<=0?"red":it.qty<=it.min?"orange":"green";
+if(it.qty<=it.min)low++;
+l.innerHTML+=`
+<div class="card">
+<div class="row">
+<img src="${it.img}">
+<div style="flex:1">
+<b>${it.name}</b>
+<div class="small">${it.qty} ${it.unit}</div>
+<span class="badge ${badge}">
+${badge=="green"?"Đủ":badge=="orange"?"Sắp hết":"Hết"}
+</span>
+</div>
+</div>
+<button onclick="move(${i},1)">+ Nhập</button>
+<button class="danger" onclick="move(${i},-1)">- Xuất</button>
+</div>`;
+});
+alert.innerText=low?`⚠️ ${low} mặt hàng sắp hết`:"Tất cả ổn định";
+receipt.innerHTML=out.map(o=>"<div>"+o+"</div>").join("");
 }
+
+function print(){window.print()}
 render();
 </script>
 </body>
